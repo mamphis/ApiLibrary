@@ -1,9 +1,9 @@
 import chalk from "chalk";
 
 enum LogLevel {
-    'info',
-    'error',
-    'debug',
+    'error' = 1,
+    'info' = 3,
+    'debug' = 5,
 }
 
 const getChalk = (level: LogLevel) => {
@@ -53,7 +53,7 @@ export class Logger {
     }
 
     protected log(level: LogLevel, message: string): void {
-        if (level < this.logLevel) {
+        if (level > this.logLevel) {
             return;
         }
 

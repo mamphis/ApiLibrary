@@ -1,6 +1,6 @@
 {
   "name": "@mamphis/api-node",
-  "version": "0.0.1",
+  "version": "0.0.10",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
@@ -24,7 +24,7 @@
     "zod": "^3.23.8"
   },
   "dependencies": {
-    "chalk": "^5.3.0"
+    "chalk": "^4"
   },
   "repository": {
     "type": "git",

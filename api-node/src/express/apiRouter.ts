@@ -33,7 +33,7 @@ export class ApiRouter<
     T extends Model<any>,
     K extends keyof Client,
     C extends Client[K],
-    WhereFilter extends Required<NonNullable<Parameters<C['findMany']>[0]>> extends { where?: infer T } ? T : never
+    WhereFilter extends Required<NonNullable<Parameters<C['findMany']>[0]>> extends { where?: infer U } ? U : never
 > {
     private router: Router;
 

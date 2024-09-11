@@ -108,22 +108,17 @@ export class EventEmitter {
         return event;
     }
 }
-export type NotificationType = 'info' | 'warning' | 'success';
+export type NotificationType = 'info' | 'warning' | 'success' | 'error';
 const eventEmitter = new EventEmitter();
 
 type Message = { title: string, message?: string };
 export type Notify = (type: NotificationType, message: Message | string, onclick?: () => void) => void;
+export type SendableNotification = { type: NotificationType, message: Message, onclick?: () => void };
 
 export const useNotificationStore = defineStore('event', () => {
-    type Notification = {
-        type: NotificationType,
-        message: Message,
-        onclick?: () => void;
-    };
-
     const sendNotification: Notify = (type: NotificationType, message: Message | string, onclick?: () => void) => {
         if (typeof message === 'object') {
-            eventEmitter.fire<Notification>('notification', { type, message, onclick });
+            eventEmitter.fire<SendableNotification>('notification', { type, message, onclick });
             return;
         }
 
@@ -133,11 +128,12 @@ export const useNotificationStore = defineStore('event', () => {
             const object = JSON.parse(message);
             content = object.message ?? object.error;
         } catch { }
-        eventEmitter.fire<Notification>('notification', { type, message: { title: content }, onclick });
+
+        eventEmitter.fire<SendableNotification>('notification', { type, message: { title: content }, onclick });
     }
 
-    const onSendNofification = (listener: (notification: Event<Notification>) => void) => {
-        eventEmitter.on<Notification>('notification', listener);
+    const onSendNofification = (listener: (notification: Event<SendableNotification>) => void) => {
+        eventEmitter.on<SendableNotification>('notification', listener);
     }
 
     return {

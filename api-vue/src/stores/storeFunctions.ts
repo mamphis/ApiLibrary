@@ -19,9 +19,14 @@ export const storeFunctions = (
             return;
         }
 
-        const errorText = await response.text();
-        sendNotification("warning", errorText);
-        console.error(message, errorText);
+        const error = await response.json();
+        const traceId = response.headers.get('ApiTraceId') ?? error.traceId;
+        if (traceId) {
+            sendNotification("error", { title: error.message ?? error.error, message: `Please use the Trace Id "${traceId}" when contacting support.` });
+        } else {
+            sendNotification("warning", { title: error.message ?? error.error });
+        }
+        console.error(traceId, message, error);
     }
 
 
@@ -68,7 +73,7 @@ export const storeFunctions = (
             };
         },
 
-        validateRec: <T extends Model>(url: string, fetchAllL: () => Promise<T[] | undefined>, mapper?: (data: any) => T) => {
+        validateRec: <T extends Model>(url: string, fetchAll: () => Promise<T[] | undefined>, mapper?: (data: any) => T) => {
             return async (rec: T, key: string, value?: ValueType) => {
                 const body = {
                     id: rec.id,
@@ -85,7 +90,7 @@ export const storeFunctions = (
                 });
 
                 if (response.ok) {
-                    fetchAllL();
+                    fetchAll();
                     const data = await response.json();
                     if (mapper) {
                         return mapper(data);
