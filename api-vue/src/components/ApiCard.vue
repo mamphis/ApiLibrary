@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+
 const { title, showBackButton } = defineProps<{
     title: string,
-    showBackButton?: boolean,
+    showBackButton?: boolean | undefined,
 }>();
+
+const backVisible = computed(() => !!showBackButton);
 
 const emits = defineEmits<{
     (e: 'back'): void,
@@ -17,7 +21,7 @@ const emits = defineEmits<{
         </div>
         <slot></slot>
         <div class="buttons">
-            <button v-if="showBackButton === false"  @click="emits('back')">Back</button>
+            <button v-if="backVisible" @click="emits('back')">Back</button>
         </div>
     </main>
 </template>

@@ -1,9 +1,15 @@
 <script setup lang="ts">
+import { useSlots } from 'vue';
 
-const visible = defineModel < boolean > ('visible');
+
+const visible = defineModel<boolean>('visible');
 const hide = () => {
     visible.value = false;
 };
+
+const slots = useSlots();
+
+
 </script>
 
 <template>
@@ -11,8 +17,15 @@ const hide = () => {
         <div class="modal-background" @click="hide()"></div>
         <div class="modal-container">
             <span class="modal-close" @click="hide()"></span>
+
+            <div class="modal-header" v-if="!!slots['header']">
+                <slot name="header"></slot>
+            </div>
             <div class="modal-content">
                 <slot></slot>
+            </div>
+            <div class="modal-footer" v-if="!!slots['footer']">
+                <slot name="footer"></slot>
             </div>
         </div>
     </div>
@@ -43,12 +56,19 @@ const hide = () => {
 .modal-container {
     position: relative;
     background-color: var(--color-background);
-    padding: 20px;
+    padding: 1rem;
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
     min-width: 50%;
     min-height: 50%;
 }
+
+.modal-header {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    margin: -1rem -1rem 1rem -1rem;
+    padding: 1rem;
+}
+
 
 .modal-close {
     position: absolute;
