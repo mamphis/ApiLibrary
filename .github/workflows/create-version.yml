@@ -25,3 +25,13 @@ jobs:
           run: npm run publish-lib
           env:
             NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+        - name: commit Version Changes
+          run: |
+            git config --local user.email "github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+            git git commit -am "Update version [skip ci]"
+        - name: Push changes
+          uses: ad-m/github-push-action@master
+          with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+            branch: ${{ github.ref }}
