@@ -1,0 +1,27 @@
+# Create a workflow that runs when a pull request is merged into the master branch
+
+run-name: Publish Package
+on:
+    push:
+        branches:
+        - master
+jobs:
+    Publish-Package:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v2
+        - name: Set up Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: '20.x'
+            registry-url: https://registry.npmjs.org/
+        - name: Install dependencies
+          run: npm run dep
+        - name: Build
+          run: npm run build
+        - name: Update version
+          run: npm run updateVersion
+        - name: Publish
+          run: npm run publish
+          env:
+            NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
