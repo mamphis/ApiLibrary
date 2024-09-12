@@ -7,7 +7,7 @@ on:
         - master
 jobs:
     Publish-Package:
-        runs-on: ubuntu-latest
+        runs-on: self-hosted
         steps:
         - uses: actions/checkout@v2
         - name: Set up Node.js
@@ -22,6 +22,6 @@ jobs:
         - name: Update version
           run: npm run updateVersion
         - name: Publish
-          run: npm run publish
+          run: npm run publish-lib
           env:
             NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
