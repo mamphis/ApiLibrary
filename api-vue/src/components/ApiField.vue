@@ -172,4 +172,16 @@ input:checked+.slider:before {
 .slider.round:before {
     border-radius: 50%;
 }
+
+@media screen and (max-width: 768px) {
+    .field {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    label {
+        font-size: smaller;
+    }
+}
+
 </style>
