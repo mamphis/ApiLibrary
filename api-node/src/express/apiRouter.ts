@@ -2,8 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { Request, RequestHandler, Response, Router } from "express";
 import { Model } from "./model";
 
-
-type Client = Omit<PrismaClient, symbol | "$on" | "$connect" | "$disconnect" | "$use" | "$transaction" | "$extends" | "$executeRaw" | "$executeRawUnsafe" | "$queryRaw" | "$queryRawUnsafe">;
+type Client = Omit<PrismaClient, symbol | "$on" | "$connect" | "$disconnect" | "$use" | "$extends" | "$executeRaw" | "$executeRawUnsafe" | "$queryRaw" | "$queryRawUnsafe">;
 type TransactionClient = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
 
 const PAGE_SIZE = 100;
@@ -32,31 +31,32 @@ function getSelectParams(req: Request) {
 export class ApiRouter<
     T extends Model<any>,
     K extends keyof Client,
+    DB extends Client,
     C extends Client[K],
-    WhereFilter extends Required<NonNullable<Parameters<C['findMany']>[0]>> extends { where?: infer U } ? U : never
+    WhereFilter extends Required<NonNullable<Parameters<DB[K]['findMany']>[0]>> extends { where?: infer U } ? U : never
 > {
     private router: Router;
+    private client: C;
 
     private constructor(
         private entity: K,
-        private client: C,
+        private db: DB,
         private ctor: new (value: any, client: TransactionClient) => T
     ) {
-
+        this.client = db[entity] as C;
         this.router = Router({ mergeParams: true });
     }
 
     public static create<
         T extends Model<any>,
         K extends keyof Client,
-        C extends Client[K],
-        WhereFilter extends Required<NonNullable<Parameters<C['findMany']>[0]>> extends { where?: infer T } ? T : never
+        DB extends Client,
     >(
         entity: K,
-        client: C,
+        db: DB,
         ctor: new (value: any) => T
     ) {
-        return new ApiRouter<T, K, C, WhereFilter>(entity, client, ctor);
+        return new ApiRouter(entity, db, ctor);
     }
 
     authed(authFunction: RequestHandler): this {
@@ -154,7 +154,7 @@ export class ApiRouter<
 
             if (!rec) {
                 try {
-                    await this.client.$transaction(async (client: TransactionClient) => {
+                    await this.db.$transaction(async (client: TransactionClient) => {
                         const init = initializer ? await initializer(req, res, client, req.body) : {};
                         const data = { ...req.body, ...init };
                         const dbRec = await (client[this.entity] as any).create({
