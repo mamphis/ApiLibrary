@@ -11,7 +11,14 @@ export const httpLogger = (logger: Logger = Logger.createScopedLogger('server'))
     res.set('Access-Control-Allow-Headers', 'ApiTraceId');
 
     res.once('finish', () => {
-        logger.debug(`${chalk.yellow(res.locals.traceId)} | ${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - start}ms`);
+        logger.debug(`${chalk.yellow(res.locals.traceId)} | ${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - start}ms`, {
+            method: req.method,
+            url: req.originalUrl,
+            status: res.statusCode.toString(),
+            duration: Date.now() - start,
+            ip: req.ip,
+            traceId: res.locals.traceId,
+        });
     });
 
     next();

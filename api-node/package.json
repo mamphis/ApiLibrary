@@ -24,6 +24,7 @@
     "zod": "^3.23.8"
   },
   "dependencies": {
+    "@types/node": "^22.10.1",
     "chalk": "^4"
   },
   "repository": {
