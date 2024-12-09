@@ -115,7 +115,7 @@ type Message = { title: string, message?: string };
 export type Notify = (type: NotificationType, message: Message | string, onclick?: () => void) => void;
 export type SendableNotification = { type: NotificationType, message: Message, onclick?: () => void };
 
-export const useNotificationStore = defineStore('event', () => {
+export const useNotificationStore = defineStore('notifications', () => {
     const sendNotification: Notify = (type: NotificationType, message: Message | string, onclick?: () => void) => {
         if (typeof message === 'object') {
             eventEmitter.fire<SendableNotification>('notification', { type, message, onclick });
