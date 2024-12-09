@@ -25,7 +25,8 @@
   },
   "dependencies": {
     "@types/node": "^22.10.1",
-    "chalk": "^4"
+    "chalk": "^4",
+    "nanoid": "^3.3.8"
   },
   "repository": {
     "type": "git",

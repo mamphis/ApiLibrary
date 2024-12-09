@@ -11,7 +11,6 @@ export const storeFunctions = (
     getHeaders: () => Promise<HeadersInit> = async () => ({}),
     onHandleErrorResponse?: (response: Response) => Promise<boolean>,
 ) => {
-
     const handleErrorResponse = async (response: Response, message?: string) => {
         const { sendNotification } = useNotificationStore();
 
@@ -33,10 +32,12 @@ export const storeFunctions = (
     return {
         deleteRec: <T extends Model>(url: string, fetchRecs: () => Promise<T[] | undefined>) => {
             return async (rec: T) => {
+                const { sessionId } = useLockStore();
                 const response = await fetch(`${url}/${rec.id}`, {
                     method: 'DELETE',
                     headers: {
                         ...await getHeaders(),
+                        SessionId: sessionId,
                     },
                 });
 
@@ -50,11 +51,13 @@ export const storeFunctions = (
 
         saveRec: <T extends Model>(url: string, fetchRecs: () => Promise<T[] | undefined>, mapper?: (data: any) => T) => {
             return async (rec: Partial<T>) => {
+                const { sessionId } = useLockStore();
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         ...await getHeaders(),
+                        SessionId: sessionId,
                     },
                     body: JSON.stringify(rec),
                 });
@@ -75,6 +78,7 @@ export const storeFunctions = (
 
         validateRec: <T extends Model>(url: string, fetchAll: () => Promise<T[] | undefined>, mapper?: (data: any) => T) => {
             return async (rec: T, key: string, value?: ValueType) => {
+                const { sessionId } = useLockStore();
                 const body = {
                     id: rec.id,
                     [key]: value,
@@ -85,6 +89,7 @@ export const storeFunctions = (
                     headers: {
                         'Content-Type': 'application/json',
                         ...await getHeaders(),
+                        SessionId: sessionId,
                     },
                     body: JSON.stringify(body),
                 });
@@ -105,9 +110,11 @@ export const storeFunctions = (
 
         fetchOne: <T extends Model>(url: string, mapper?: (data: any) => T): () => Promise<T | undefined> => {
             return async () => {
+                const { sessionId } = useLockStore();
                 const response = await fetch(url, {
                     headers: {
                         ...await getHeaders(),
+                        SessionId: sessionId,
                     }
                 });
                 if (response.ok) {
@@ -133,6 +140,7 @@ export const storeFunctions = (
             }
 
             return async () => {
+                const { sessionId } = useLockStore();
                 const uri = new URL(url);
                 uri.searchParams.set('page', '1');
                 const appendNextRecords = async (page: number) => {
@@ -140,6 +148,7 @@ export const storeFunctions = (
                     const response = await fetch(uri, {
                         headers: {
                             ...await getHeaders(),
+                            SessionId: sessionId,
                         }
                     });
                     if (response.ok) {
@@ -164,6 +173,7 @@ export const storeFunctions = (
                 const response = await fetch(uri, {
                     headers: {
                         ...await getHeaders(),
+                        SessionId: sessionId,
                     },
                 });
                 if (response.ok) {

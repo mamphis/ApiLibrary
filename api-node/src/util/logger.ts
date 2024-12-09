@@ -1,120 +1,173 @@
-import chalk from "chalk";
 import EventEmitter from "events";
+import { Request, Response } from "express";
+import { customAlphabet } from 'nanoid';
 import { LoggerTransport } from "./transports/loggerTransport";
 
-enum LogLevel {
-    'error' = 1,
-    'info' = 3,
-    'debug' = 5,
+const hexNano = customAlphabet('0123456789abcdef', 20);
+
+export enum LogLevel {
+    error = 0,
+    warn = 1,
+    info = 2,
+    http = 3,
+    verbose = 4,
+    debug = 5,
+    silly = 6
 }
-
-const getChalk = (level: LogLevel) => {
-    switch (level) {
-        case LogLevel.info:
-            return chalk.green;
-        case LogLevel.error:
-            return chalk.red;
-        case LogLevel.debug:
-            return chalk.blue;
-    }
-
-    return chalk.white;
-};
-
-type LogContext = Record<string, string | number | boolean | undefined>;
 
 export type LogEvent = {
-    timestamp: Date,
-    level: LogLevel,
-    message: string,
-    context?: LogContext,
-}
+    timestamp: Date;
+    level: LogLevel;
+    message: string;
+    context?: Record<string, any>;
+};
 
-export class Logger {
-    private logLevel: LogLevel;
-    private formatter: Intl.DateTimeFormat = new Intl.DateTimeFormat('de', {
-        dateStyle: 'short',
-        timeStyle: 'medium',
-    });
-
-    private static logger?: Logger;
-    private static eventEmitter: EventEmitter = new EventEmitter();
-
-    public static on(event: 'log', listener: (logEvent: LogEvent) => void): void {
-        this.eventEmitter.on(event, listener);
+class Logger {
+    constructor(protected log: Log) {
     }
 
-    protected constructor() {
-        if (process.env.NODE_ENV === 'production') {
-            this.logLevel = LogLevel.info;
+    protected getDefaultContext(): Record<string, any> {
+        return {};
+    }
+
+    async error(error: Error, context?: Record<string, any>): Promise<void>;
+    async error(message: string, context?: Record<string, any>): Promise<void>;
+    async error(message: string | Error, context?: Record<string, any>): Promise<void> {
+        if (message instanceof Error) {
+            this.log.log(LogLevel.error, message.message, {
+                ...this.getDefaultContext(), ...message, exception: `${message.name}: ${message.message}
+${message.stack}`, ...context
+            });
         } else {
-            this.logLevel = LogLevel.debug;
+            this.log.log(LogLevel.error, message, { ...this.getDefaultContext(), ...context });
         }
     }
 
-    public static createScopedLogger(scope: string): ScopedLogger {
-        return new ScopedLogger(scope);
+    async warn(message: string, context?: Record<string, any>): Promise<void> {
+        this.log.log(LogLevel.warn, message, { ...this.getDefaultContext(), ...context });
     }
 
-    public static createLogger(): Logger {
-        if (!Logger.logger) {
-            Logger.logger = new Logger();
-        }
-
-        return Logger.logger;
+    async info(message: string, context?: Record<string, any>): Promise<void> {
+        this.log.log(LogLevel.info, message, { ...this.getDefaultContext(), ...context });
     }
 
-    public setLogLevel(logLevel: LogLevel): void {
-        this.logLevel = logLevel;
-    }
-
-    protected log(level: LogLevel, message: string, context?: LogContext): void {
-        const timestamp = new Date();
-        Logger.eventEmitter.emit('log', { timestamp, level, message, context });
-        if (level > this.logLevel) {
-            return;
-        }
-
-        console.log(`${chalk.blue(this.formatter.format(timestamp))} [${getChalk(level)(LogLevel[level].toUpperCase())}] ${message}`);
-    }
-
-    public info(message: string, context?: LogContext): void {
-        this.log(LogLevel.info, message, context);
-    }
-
-    public error(message: string, context?: LogContext): void {
-        this.log(LogLevel.error, message, context);
-    }
-
-    public debug(message: string, context?: LogContext): void {
-        this.log(LogLevel.debug, message, context);
-    }
-
-    public static addTransportLayer(transport: LoggerTransport): void {
-        this.eventEmitter.on('log', async (logEvent: LogEvent) => {
-            await transport.processEvent(logEvent);
+    async http(req: Request, res: Response, context?: Record<string, any>): Promise<void> {
+        this.log.log(LogLevel.http, `${req.method} ${req.originalUrl} ${res.statusCode}`, {
+            ...this.getDefaultContext(),
+            ...context,
+            method: req.method,
+            url: req.originalUrl,
+            status: res.statusCode.toString(),
+            duration: Date.now() - req.logger.start.getTime(),
+            ip: req.ip,
+            sessionId: req.headers.sessionid?.toString(),
         });
     }
+
+    async verbose(message: string, context?: Record<string, any>): Promise<void> {
+        this.log.log(LogLevel.verbose, message, { ...this.getDefaultContext(), ...context });
+    }
+
+    async debug(message: string, context?: Record<string, any>): Promise<void> {
+        this.log.log(LogLevel.debug, message, { ...this.getDefaultContext(), ...context });
+    }
+
+    async silly(message: string, context?: Record<string, any>): Promise<void> {
+        this.log.log(LogLevel.silly, message, { ...this.getDefaultContext(), ...context });
+    }
 }
 
-class ScopedLogger extends Logger {
-    constructor(private scope: string) {
-        super();
+
+export class TraceLogger extends Logger {
+    protected _traceId: string;
+    readonly spanId: string;
+    readonly start: Date;
+    protected parent?: TraceLogger;
+
+    get traceId() {
+        return this._traceId;
     }
 
-    protected log(level: LogLevel, message: string, context?: LogContext): void {
-        super.log(level, `(${this.scope}) ${message}`, {...context, scope: this.scope});
+    constructor(protected log: Log, private scope?: string) {
+        super(log);
+
+        this._traceId = hexNano();
+        this.start = new Date();
+        this.spanId = hexNano(16);
     }
 
-    public info(message: string, context?: LogContext): void {
-        this.log(LogLevel.info, message, context);
+    protected getDefaultContext(): Record<string, any> {
+        return {
+            traceId: this.traceId,
+            spanId: this.spanId,
+            parentSpanId: this.parent?.spanId,
+            start: this.start,
+            scope: this.scope,
+        };
     }
 
-    public error(message: string, context?: LogContext): void {
-        this.log(LogLevel.error, message, context);
+    startSpan(scope?: string): TraceLogger {
+        const logger = new TraceLogger(this.log, scope);
+        logger.parent = this;
+        logger._traceId = this.traceId;
+        logger.scope = scope ?? this.scope;
+        LastActiveTrace.lastParent = logger;
+
+        return logger;
     }
 
-    public debug(message: string, context?: LogContext): void {
-        this.log(LogLevel.debug, message, context);
+    lastActiveSpan(): LastActiveTrace {
+        const logger = new LastActiveTrace(this.log);
+        logger.parent = this;
+        logger._traceId = this.traceId;
+        logger.scope = this.scope;
+
+        return logger;
+    }
+}
+
+class LastActiveTrace extends TraceLogger {
+    static lastParent?: TraceLogger;
+
+    constructor(protected log: Log) {
+        super(log);
+    }
+
+    protected getDefaultContext(): Record<string, any> {
+        const context = super.getDefaultContext();
+
+        return {
+            ...context,
+            parentSpanId: LastActiveTrace.lastParent?.spanId ?? this.parent?.spanId,
+            traceId: LastActiveTrace.lastParent?.traceId ?? this.parent?.traceId,
+        };
+    }
+}
+
+export class Log {
+    private emitter = new EventEmitter();
+    constructor() {
+    }
+
+
+    addTransport(transport: LoggerTransport) {
+        this.emitter.on('log', (event: LogEvent) => {
+            transport.processEvent(event);
+        });
+        return this;
+    }
+
+    log(level: LogLevel, message: string, context?: Record<string, any>) {
+        const event = {
+            timestamp: new Date(),
+            level,
+            message,
+            context,
+        };
+        this.emitter.emit('log', event);
+    }
+
+    startTrace(scope?: string): TraceLogger {
+        return new TraceLogger(this, scope);
     }
 }

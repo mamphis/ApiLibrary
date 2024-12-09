@@ -3,10 +3,15 @@ import { NextFunction, Request, Response } from "express";
 import { handlePrismaClientKnownRequestError } from "../../db/error";
 import { ZodError } from "zod";
 import createHttpError from "http-errors";
-import { Logger } from "../../util/logger";
 import chalk from "chalk";
+import { Log, TraceLogger } from "../../util/logger";
+import { error } from "console";
 
-export const errorHandler = (logger: Logger = Logger.createScopedLogger('server')) => (err: unknown, req: Request, res: Response, next: NextFunction) => {
+function isPrismaClientKnownRequestError(err: any): err is PrismaClientKnownRequestError {
+    return err instanceof Error && 'code' in err && err.name === 'PrismaClientKnownRequestError';
+}
+
+export const errorHandler = () => (err: unknown, req: Request, res: Response<any, { logger: TraceLogger }>, next: NextFunction) => {
     let statusCode = 500;
     let context: {
         type: string;
@@ -20,7 +25,32 @@ export const errorHandler = (logger: Logger = Logger.createScopedLogger('server'
         error: 'Internal server error',
     };
 
+    if (err instanceof Error) {
+        context = {
+            type: 'Error',
+            name: err.name,
+            error: err.message,
+        };
+
+        if (process.env.NODE_ENV !== 'production') {
+            context.data = err.stack;
+        }
+
+        if ('code' in err && typeof err['code'] === 'number') {
+            statusCode = err.code;
+        }
+
+        if ('status' in err && typeof err['status'] === 'number') {
+            statusCode = err.status
+        }
+
+        if ('statusCode' in err && typeof err['statusCode'] === 'number') {
+            statusCode = err.statusCode
+        }
+    }
+
     if (err instanceof PrismaClientValidationError) {
+        console.log('PrismaClientValidationError');
         statusCode = 400;
         context = {
             type: 'ValidationError',
@@ -30,7 +60,7 @@ export const errorHandler = (logger: Logger = Logger.createScopedLogger('server'
 
     }
 
-    if (err instanceof PrismaClientKnownRequestError) {
+    if (isPrismaClientKnownRequestError(err)) {
         const prismaError = handlePrismaClientKnownRequestError(err);
 
         statusCode = prismaError.status;
@@ -71,33 +101,12 @@ export const errorHandler = (logger: Logger = Logger.createScopedLogger('server'
         };
     }
 
+    context.traceId = req.logger.traceId;
     if (err instanceof Error) {
-        context = {
-            type: 'Error',
-            name: err.name,
-            error: err.message,
-        };
-
-        if (process.env.NODE_ENV !== 'production') {
-            context.data = err.stack;
-        }
-
-        if ('code' in err && typeof err['code'] === 'number') {
-            statusCode = err.code;
-        }
-
-        if ('status' in err && typeof err['status'] === 'number') {
-            statusCode = err.status
-        }
-
-        if ('statusCode' in err && typeof err['statusCode'] === 'number') {
-            statusCode = err.statusCode
-        }
-    } 
-    
-    context.traceId = res.locals.traceId;
-    const errorMessage = `${context.traceId ? (chalk.yellow(context.traceId) + ' | ') : ''}${context.type} ${context.name} ${context.error}${context.data ? '\n' + context.data : ''}`;
-    logger.error(errorMessage);
+        req.logger.error(err, context);
+    } else {
+        req.logger.error(context.error, context);
+    }
 
     res.status(statusCode).json(context);
 };
