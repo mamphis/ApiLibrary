@@ -1,4 +1,4 @@
-import { TraceLogger } from "../util/logger";
+import { TraceLogger } from "../logging/logger";
 
 declare global {
    namespace Express {
