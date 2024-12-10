@@ -126,6 +126,10 @@ export class TraceLogger extends Logger {
 
         return logger;
     }
+
+    setActiveSpan(): void {
+        LastActiveTrace.lastParent = this;
+    }
 }
 
 class LastActiveTrace extends TraceLogger {
