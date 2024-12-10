@@ -35,8 +35,10 @@ class Logger {
     async error(message: string | Error, context?: Record<string, any>): Promise<void> {
         if (message instanceof Error) {
             this.log.log(LogLevel.error, message.message, {
-                ...this.getDefaultContext(), ...message, exception: `${message.name}: ${message.message}
-${message.stack}`, ...context
+                ...this.getDefaultContext(),
+                ...message,
+                exception: `${message.stack}`,
+                ...context
             });
         } else {
             this.log.log(LogLevel.error, message, { ...this.getDefaultContext(), ...context });
