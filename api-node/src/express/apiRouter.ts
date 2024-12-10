@@ -134,9 +134,12 @@ export class ApiRouter<
                 ...selectParams,
             });
 
-            const total = await this.client.count({
-                where: params,
-            });
+            let total = recs.length;
+            if (selectParams.take && recs.length >= selectParams.take) {
+                total = await this.client.count({
+                    where: params,
+                });
+            }
 
             databaseSpan.verbose('{scope} loaded {count} of {total} records from database', { total, count: recs.length });
 
@@ -157,7 +160,7 @@ export class ApiRouter<
             let rec;
             // remove empty fields from body
             const prepareSpan = req.logger.startSpan('api-' + this.entity.toString());
-            
+
             const setupSpan = prepareSpan.startSpan();
             setupSpan.verbose('{scope} Setting up record');
             Object.keys(req.body).forEach(key => {
@@ -233,7 +236,7 @@ export class ApiRouter<
         this.router.delete('/:id', ...middlewares, async (req, res, next) => {
             const prepareSpan = req.logger.startSpan('api-' + this.entity.toString());
             prepareSpan.verbose('{scope} Trying to find record with id {id}', { id: req.params.id });
-            
+
             this.client.$ps = prepareSpan.spanId;
             const dbRec = await this.client.findUnique({
                 where: { id: req.params.id }
