@@ -46,7 +46,7 @@ export class LoggerRotatingFileTransport implements LoggerTransport {
     private async rotateFile() {
         if (!this.stream) {
             // open the file if it is not opened jet. If the file Size is to big it doesnt matter at least we can log now.
-            await this.rotate();
+            this.stream = createWriteStream(this.logFile, { flags: 'a', autoClose: false, encoding: 'utf8' });
             return;
         }
 
