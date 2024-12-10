@@ -50,7 +50,6 @@ export const errorHandler = () => (err: unknown, req: Request, res: Response<any
     }
 
     if (err instanceof PrismaClientValidationError) {
-        console.log('PrismaClientValidationError');
         statusCode = 400;
         context = {
             type: 'ValidationError',
