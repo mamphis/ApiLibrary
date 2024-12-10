@@ -1,56 +1,31 @@
 import chalk from "chalk";
 import { LogEvent, LogLevel } from "../logger";
-import { LoggerTransport } from "./loggerTransport";
-
-const getChalk = (level: LogLevel) => {
-    switch (level) {
-        case LogLevel.info:
-            return chalk.green;
-        case LogLevel.error:
-            return chalk.red;
-        case LogLevel.debug:
-            return chalk.blue;
-        case LogLevel.warn:
-            return chalk.yellow;
-        case LogLevel.http:
-            return chalk.cyan;
-    }
-
-    return chalk.white;
-};
-
+import { LoggerTransport, getFormatter } from "./loggerTransport";
 
 export class LoggerConsoleTransport implements LoggerTransport {
+    private messageFormatter: (event: LogEvent) => string;
     constructor(private minimumLevel: LogLevel = LogLevel.info) {
+        this.messageFormatter = getFormatter({
+            color: true,
+        });
     }
-
-    private formatter: Intl.DateTimeFormat = new Intl.DateTimeFormat('de', {
-        dateStyle: 'short',
-        timeStyle: 'medium',
-    });
 
     async processEvent(event: LogEvent): Promise<void> {
         if (event.level > this.minimumLevel) {
             return;
         }
 
-        const preamble = `${chalk.blue(this.formatter.format(event.timestamp))} [${getChalk(event.level)(LogLevel[event.level].toUpperCase())}]`;
-        const traceId = event.context?.traceId ? chalk.gray(`[${event.context.traceId}]`) : '';
-        let message = event.message;
-
-        if (event.context?.exception) {
-            message += `\n${event.context.exception}`;
-        }
+        const message = this.messageFormatter(event);
 
         switch (event.level) {
             case LogLevel.error:
-                console.error(`${preamble} ${traceId} ${message}`);
+                console.error(message);
                 break;
             case LogLevel.warn:
-                console.warn(`${preamble} ${traceId} ${message}`);
+                console.warn(message);
                 break;
             default:
-                console.log(`${preamble} ${traceId} ${message}`);
+                console.log(message);
         }
     }
 }
