@@ -36,8 +36,21 @@ export class LoggerConsoleTransport implements LoggerTransport {
 
         const preamble = `${chalk.blue(this.formatter.format(event.timestamp))} [${getChalk(event.level)(LogLevel[event.level].toUpperCase())}]`;
         const traceId = event.context?.traceId ? chalk.gray(`[${event.context.traceId}]`) : '';
-        const message = event.message;
+        let message = event.message;
 
-        console.log(`${preamble} ${traceId} ${message}`);
+        if (event.context?.exception) {
+            message += `\n${event.context.exception}`;
+        }
+
+        switch (event.level) {
+            case LogLevel.error:
+                console.error(`${preamble} ${traceId} ${message}`);
+                break;
+            case LogLevel.warn:
+                console.warn(`${preamble} ${traceId} ${message}`);
+                break;
+            default:
+                console.log(`${preamble} ${traceId} ${message}`);
+        }
     }
 }
