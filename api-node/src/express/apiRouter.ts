@@ -39,10 +39,39 @@ export class ApiRouter<
     private router: Router;
     private client: C;
 
+    private getWhereFilter(req: Request, res: Response): WhereFilter {
+        const whereParams: WhereFilter = {} as WhereFilter;
+
+        for (const key in req.params) {
+            if (Object.keys(this.client.fields).includes(key)) {
+                (whereParams as any)[key] = (req.params as Record<string, string>)[key];
+            } else {
+                const fieldName = key.replace(/Id$/, '');
+                if (Object.keys(this.client.fields).includes(fieldName)) {
+                    (whereParams as any)[fieldName] = {
+                        some: {
+                            id: (req.params as Record<string, string>)[key],
+                        }
+                    }
+                }
+            }
+        }
+
+        if (this.globalWhereFilter) {
+            const globalFilter = this.globalWhereFilter(req, res);
+            for (const key in globalFilter) {
+                (whereParams as any)[key] = (globalFilter as any)[key];
+            }
+        }
+
+        return whereParams;
+    }
+
     private constructor(
         private entity: K,
         private db: DB,
-        private ctor: new (value: any, client: TransactionClient) => T
+        private ctor: new (value: any, client: TransactionClient) => T,
+        private globalWhereFilter?: (req: Request, res: Response) => WhereFilter,
     ) {
         this.client = db[entity] as C;
         this.router = Router({ mergeParams: true });
@@ -74,9 +103,14 @@ export class ApiRouter<
         this.router.get('/:id', ...middlewares, async (req, res, next) => {
             const prepareSpan = req.logger.startSpan('api-' + this.entity.toString());
             prepareSpan.verbose('{scope} Trying to find record with id {id}', { id: req.params.id });
-            this.client.$ps = prepareSpan.spanId;
+            const filterSpan = prepareSpan.startSpan();
+
+            const whereParams = this.getWhereFilter(req, res);
+            filterSpan.verbose('{scope} Where params', whereParams as Record<string, any>);
+
+            prepareSpan.setActiveSpan();
             const rec = await this.client.findUnique({
-                where: { id: req.params.id }
+                where: whereParams,
             });
 
             if (!rec) {
@@ -106,23 +140,7 @@ export class ApiRouter<
             const selectParams = getSelectParams(req);
             filterSpan.verbose('{scope} Select params', selectParams);
 
-            const whereParams: WhereFilter = {} as WhereFilter;
-
-            for (const key in req.params) {
-                if (Object.keys(this.client.fields).includes(key)) {
-                    (whereParams as any)[key] = (req.params as Record<string, string>)[key];
-                } else {
-                    const fieldName = key.replace(/Id$/, '');
-                    if (Object.keys(this.client.fields).includes(fieldName)) {
-                        (whereParams as any)[fieldName] = {
-                            some: {
-                                id: (req.params as Record<string, string>)[key],
-                            }
-                        }
-                    }
-                }
-            }
-
+            const whereParams = this.getWhereFilter(req, res);
             const params = filter ? filter(req, res, whereParams) : whereParams;
             filterSpan.verbose('{scope} Where params', params as Record<string, any>);
 
@@ -174,8 +192,11 @@ export class ApiRouter<
 
             if ('id' in req.body) {
                 setupSpan.verbose('{scope} Trying to find record with id {id}', { id: req.body.id });
+
+                req.params.id = req.body.id;
+                const whereParams = this.getWhereFilter(req, res);
                 const dbRec = await this.client.findUnique({
-                    where: { id: req.body.id }
+                    where: whereParams,
                 });
 
                 if (dbRec) {
@@ -184,14 +205,12 @@ export class ApiRouter<
                 }
             }
 
-
-
             if (!rec) {
                 setupSpan.verbose('{scope} Creating new record');
                 try {
                     await this.db.$transaction(async (client: TransactionClient) => {
                         const init = initializer ? await initializer(req, res, client, req.body) : {};
-                        const data = { ...req.body, ...init };
+                        const data = { ...req.body, ...req.params, ...init };
                         const dbRec = await (client[this.entity] as any).create({
                             data,
                         });
@@ -237,9 +256,9 @@ export class ApiRouter<
             const prepareSpan = req.logger.startSpan('api-' + this.entity.toString());
             prepareSpan.verbose('{scope} Trying to find record with id {id}', { id: req.params.id });
 
-            this.client.$ps = prepareSpan.spanId;
+            const whereParams = this.getWhereFilter(req, res);
             const dbRec = await this.client.findUnique({
-                where: { id: req.params.id }
+                where: whereParams,
             });
 
             if (!dbRec) {
@@ -260,9 +279,9 @@ export class ApiRouter<
 
             try {
                 prepareSpan.verbose('{scope} Deleting record with id {id}', { id: req.params.id });
-                this.client.$ps = prepareSpan.spanId;
+                
                 await this.client.delete({
-                    where: { id: req.params.id }
+                    where: whereParams,
                 });
             } catch (e: unknown) {
                 return next(e);

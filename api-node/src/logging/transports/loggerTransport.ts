@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import { LogEvent, LogLevel } from "../logger";
+import { MessageTemplate } from "./messageTemplate";
 
 export interface LoggerTransport {
     processEvent(event: LogEvent): Promise<void>;
@@ -46,10 +47,8 @@ export const getFormatter = (options: Partial<FormattingOptions>): (event: LogEv
         const traceId = event.context?.traceId ? `[${event.context.traceId}]` : '';
         let message = event.message;
 
-        message = message.replace(/\{([\w\d]+)\}/g, (_, key) => {
-            const value = event.context?.[key];
-            return value !== undefined ? value : `{${key}}`;
-        });
+        const messageTemplate = new MessageTemplate(event.message, usedOptions);
+        message = messageTemplate.render(event.context);
 
         if (event.context?.exception) {
             message += `\n${event.context.exception}`;

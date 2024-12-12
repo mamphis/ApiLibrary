@@ -54,7 +54,7 @@ class Logger {
     }
 
     async http(req: Request, res: Response, context?: Record<string, any>): Promise<void> {
-        this.log.log(LogLevel.http, `${req.method} ${req.originalUrl} ${res.statusCode}`, {
+        this.log.log(LogLevel.http, `{method} {url} -> {status}`, {
             ...this.getDefaultContext(),
             ...context,
             method: req.method,
