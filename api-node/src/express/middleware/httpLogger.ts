@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { Log, TraceLogger } from "../../util/logger";
+import { Log, TraceLogger } from "../../logging/logger";
 
 export const httpLogger = (logger: Log) => (req: Request, res: Response, next: NextFunction) => {
     req.logger = logger.startTrace('http-logger');

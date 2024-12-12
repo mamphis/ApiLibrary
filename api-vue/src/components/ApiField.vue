@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import type { ValueType } from '../types/helper';
 
 type FieldType = 'password' | 'date' | 'time' | 'number' | 'checkbox' | 'text';
@@ -10,11 +10,13 @@ const props = defineProps<{
     readonly?: boolean,
     type?: FieldType,
     inTable?: boolean,
+    path?: string;
 }>()
 
 const model = defineModel<ValueType>()
-
 const value = ref(model.value);
+
+const clickable = computed(() => !!props.path && !!props.readonly);
 
 if (props.type === 'date') {
     if (typeof model.value === 'object' && model.value instanceof Date) {
@@ -34,6 +36,7 @@ if (props.type === 'time') {
 
 const emits = defineEmits<{
     (e: 'validate', prop: string, value?: ValueType): void,
+    (e: 'click', path: string): void,
 }>();
 
 let originalValue = value.value;
@@ -58,20 +61,26 @@ const checkValidate = () => {
     model.value = updatedValue;
 }
 
+const onClick = () => {
+    if (clickable.value) {
+        emits('click', props.path!);
+    }
+};
+
 </script>
 
 <template>
-    <div class="field" :class="{ 'in-table': !!props.inTable }">
+    <div class="field" :class="{ 'in-table': !!props.inTable, clickable: clickable }">
         <label :for="props.prop" v-if="!props.inTable">{{ props.label }}</label>
         <div v-if="props.type === 'checkbox'">
             <label class="switch">
                 <input type="checkbox" :disabled="!!readonly" :name="props.prop" :id="props.prop" v-model="value"
-                    @change="checkValidate()">
+                    @change="checkValidate()" @click="onClick">
                 <span class="slider round"></span>
             </label>
         </div>
         <input v-else :type="props.type ?? 'text'" :disabled="!!readonly" :name="props.prop" :id="props.prop"
-            v-model="value" @blur="checkValidate()" :key="model?.toString() ?? '-'">
+            v-model="value" @blur="checkValidate()" :key="model?.toString() ?? '-'" @click="onClick">
     </div>
 </template>
 
@@ -184,4 +193,8 @@ input:checked+.slider:before {
     }
 }
 
+.clickable input {
+    text-decoration: underline;
+    cursor: pointer;
+}
 </style>

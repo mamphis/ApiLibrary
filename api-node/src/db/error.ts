@@ -1,7 +1,6 @@
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 export const handlePrismaClientKnownRequestError = (err: PrismaClientKnownRequestError): { status: number, name: string, message: string, type: string, path?: string } => {
-    console.log(err);
     switch (err.code) {
         case 'P1008':
             return { status: 500, message: 'A connection to the database has been timed out.', name: 'PrismaClientKnownRequestError', type: 'HttpError' };

@@ -4,7 +4,7 @@ import { handlePrismaClientKnownRequestError } from "../../db/error";
 import { ZodError } from "zod";
 import createHttpError from "http-errors";
 import chalk from "chalk";
-import { Log, TraceLogger } from "../../util/logger";
+import { Log, TraceLogger } from "../../logging/logger";
 import { error } from "console";
 
 function isPrismaClientKnownRequestError(err: any): err is PrismaClientKnownRequestError {
@@ -50,7 +50,6 @@ export const errorHandler = () => (err: unknown, req: Request, res: Response<any
     }
 
     if (err instanceof PrismaClientValidationError) {
-        console.log('PrismaClientValidationError');
         statusCode = 400;
         context = {
             type: 'ValidationError',
