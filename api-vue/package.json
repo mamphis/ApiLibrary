@@ -1,6 +1,6 @@
 {
   "name": "@mamphis/api-vue",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "scripts": {
     "build": "rimraf dist && vue-tsc && vite build",
     "publish-lib": "npm run build && npm publish --access public"
