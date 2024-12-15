@@ -34,44 +34,89 @@ export class ApiRouter<
     K extends keyof Client,
     DB extends Client,
     C extends Client[K],
-    WhereFilter extends Required<NonNullable<Parameters<DB[K]['findMany']>[0]>> extends { where?: infer U } ? U : never
+    WhereFilter extends Required<NonNullable<Parameters<DB[K]['findMany']>[0]>> extends { where?: infer U } ? U : never,
+    UpdateFilter extends Required<NonNullable<Parameters<DB[K]['update']>[0]>> extends { data?: infer U } ? U : never,
+    SecurityFilter extends { [key in DB[K]['fields']]: string | number | boolean },
 > {
     private router: Router;
     private client: C;
 
     private getWhereFilter(req: Request, res: Response): WhereFilter {
         const whereParams: WhereFilter = {} as WhereFilter;
+        const whereFilterSpan = req.logger.startSpan('where-filter');
+        whereFilterSpan.verbose('{scope} Preparing where params');
+        const params = req.params as Record<string, string>;
 
-        for (const key in req.params) {
+        if (this.globalFilter) {
+            const filter = this.globalFilter(req, res);
+            for (const key in filter) {
+                whereFilterSpan.verbose('{scope} Found field {field} in global filter', { field: key });
+                params[key] = filter[key] as string;
+            }
+        }
+
+        for (const key in params) {
             if (Object.keys(this.client.fields).includes(key)) {
-                (whereParams as any)[key] = (req.params as Record<string, string>)[key];
+                whereFilterSpan.verbose('{scope} Found field {field} directly in params', { field: key });
+                (whereParams as any)[key] = params[key];
             } else {
                 const fieldName = key.replace(/Id$/, '');
                 if (Object.keys(this.client.fields).includes(fieldName)) {
+                    whereFilterSpan.verbose('{scope} Found field {field} as object in params', { field: fieldName });
                     (whereParams as any)[fieldName] = {
                         some: {
-                            id: (req.params as Record<string, string>)[key],
+                            id: params[key],
                         }
                     }
                 }
             }
         }
 
-        if (this.globalWhereFilter) {
-            const globalFilter = this.globalWhereFilter(req, res);
-            for (const key in globalFilter) {
-                (whereParams as any)[key] = (globalFilter as any)[key];
+        whereFilterSpan.verbose('{scope} Where params', whereParams as Record<string, any>);
+        return whereParams;
+    }
+
+    private getUpdateFilter(req: Request, res: Response): UpdateFilter {
+        const updateParams: UpdateFilter = {} as UpdateFilter;
+        const updateFilterSpan = req.logger.startSpan('update-filter');
+        updateFilterSpan.verbose('{scope} Preparing update params');
+        const params = {} as Record<string, string>;
+
+        if (this.globalFilter) {
+            const filter = this.globalFilter(req, res);
+            for (const key in filter) {
+                updateFilterSpan.verbose('{scope} Found field {field} in global filter', { field: key });
+                params[key] = filter[key] as string;
             }
         }
 
-        return whereParams;
+        for (const key in params) {
+            if (Object.keys(this.client.fields).includes(key)) {
+                updateFilterSpan.verbose('{scope} Found field {field} directly in params', { field: key });
+                (updateParams as any)[key] = params[key];
+            } else {
+                const fieldName = key.replace(/Id$/, '');
+                if (Object.keys(this.client.fields).includes(fieldName)) {
+                    updateFilterSpan.verbose('{scope} Found field {field} as object in params', { field: fieldName });
+                    (updateParams as any)[fieldName] = {
+                        connect: {
+                            id: params[key],
+                        }
+                    }
+                }
+            }
+        }
+
+        updateFilterSpan.verbose('{scope} Update params', updateParams as Record<string, any>);
+
+        return updateParams as UpdateFilter;
     }
 
     private constructor(
         private entity: K,
         private db: DB,
         private ctor: new (value: any, client: TransactionClient) => T,
-        private globalWhereFilter?: (req: Request, res: Response) => WhereFilter,
+        private globalFilter?: (req: Request, res: Response) => SecurityFilter,
     ) {
         this.client = db[entity] as C;
         this.router = Router({ mergeParams: true });
@@ -81,12 +126,14 @@ export class ApiRouter<
         T extends Model<any>,
         K extends keyof Client,
         DB extends Client,
+        SecurityFilter extends { [key in DB[K]['fields']]: string | number | boolean },
     >(
         entity: K,
         db: DB,
-        ctor: new (value: any) => T
+        ctor: new (value: any) => T,
+        globalFilter?: (req: Request, res: Response) => SecurityFilter,
     ) {
-        return new ApiRouter(entity, db, ctor);
+        return new ApiRouter(entity, db, ctor, globalFilter);
     }
 
     authed(authFunction: RequestHandler): this {
@@ -108,7 +155,6 @@ export class ApiRouter<
             const whereParams = this.getWhereFilter(req, res);
             filterSpan.verbose('{scope} Where params', whereParams as Record<string, any>);
 
-            prepareSpan.setActiveSpan();
             const rec = await this.client.findUnique({
                 where: whereParams,
             });
@@ -210,7 +256,11 @@ export class ApiRouter<
                 try {
                     await this.db.$transaction(async (client: TransactionClient) => {
                         const init = initializer ? await initializer(req, res, client, req.body) : {};
-                        const data = { ...req.body, ...req.params, ...init };
+                        const updateFilter = this.getUpdateFilter(req, res);
+
+                        const data = { ...req.body, ...init };
+                        Object.assign(data, updateFilter);
+
                         const dbRec = await (client[this.entity] as any).create({
                             data,
                         });
@@ -279,7 +329,7 @@ export class ApiRouter<
 
             try {
                 prepareSpan.verbose('{scope} Deleting record with id {id}', { id: req.params.id });
-                
+
                 await this.client.delete({
                     where: whereParams,
                 });
