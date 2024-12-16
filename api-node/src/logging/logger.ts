@@ -63,6 +63,7 @@ class Logger {
             duration: Date.now() - req.logger.start.getTime(),
             ip: req.ip,
             sessionId: req.headers.sessionid?.toString(),
+            userAgent: req.headers['user-agent']?.toString(),
         });
     }
 
