@@ -4,7 +4,7 @@ import { LoggerTransport, getFormatter } from "./loggerTransport";
 
 export class LoggerConsoleTransport implements LoggerTransport {
     private messageFormatter: (event: LogEvent) => string;
-    constructor(private minimumLevel: LogLevel = LogLevel.info) {
+    constructor(private minimumLevel: LogLevel = LogLevel.http) {
         this.messageFormatter = getFormatter({
             color: true,
         });

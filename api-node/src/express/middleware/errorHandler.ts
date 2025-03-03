@@ -102,7 +102,7 @@ export const errorHandler = () => (err: unknown, req: Request, res: Response<any
 
     context.traceId = req.logger.traceId;
     if (err instanceof Error) {
-        req.logger.error(err, context);
+        req.logger.error(err, { context, reqHeaders: req.headers, resHeaders: res.getHeaders() });
     } else {
         req.logger.error(context.error, context);
     }

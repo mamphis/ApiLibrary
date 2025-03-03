@@ -1,4 +1,3 @@
-
 export abstract class Model<T extends { id: string }> {
     protected tasks: Promise<any>[] = [];
 
