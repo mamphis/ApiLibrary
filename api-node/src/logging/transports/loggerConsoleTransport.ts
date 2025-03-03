@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { LogEvent, LogLevel } from "../logger";
 import { LoggerTransport, getFormatter } from "./loggerTransport";
 
