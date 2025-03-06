@@ -136,9 +136,13 @@ export class ApiRouter<
         return new ApiRouter(entity, db, ctor, globalFilter);
     }
 
-    authed(authFunction: RequestHandler): this {
-        this.router.use(authFunction);
+    use(...middlewares: RequestHandler[]): this {
+        this.router.use(...middlewares);
         return this;
+    }
+
+    authed(authFunction: RequestHandler): this {
+        return this.use(authFunction);
     }
 
     subRoute(path: string, subRouter: Router): this {
