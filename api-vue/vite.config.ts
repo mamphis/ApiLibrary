@@ -1,9 +1,15 @@
 const path = require('path');
 const { defineConfig } = require('vite');
 import vue from '@vitejs/plugin-vue';
+import svgLoader from 'vite-svg-loader';
 
 module.exports = defineConfig({
-  plugins: [vue()], // to process SFC
+  plugins: [vue(), svgLoader()], // to process SFC
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+    },
+  },
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/index.ts'),

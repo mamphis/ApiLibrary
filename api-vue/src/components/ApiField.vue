@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import type { ValueType } from '../types/helper';
+import EyeOff from '@/assets/eye-off.svg';
+import EyeOn from '@/assets/eye-on.svg';
 
 type FieldType = 'password' | 'date' | 'time' | 'number' | 'checkbox' | 'text';
 
@@ -67,6 +69,9 @@ const onClick = () => {
     }
 };
 
+const passwordVisible = ref(false);
+const passwordType = computed(() => passwordVisible.value ? 'text' : 'password');
+
 </script>
 
 <template>
@@ -78,6 +83,14 @@ const onClick = () => {
                     @change="checkValidate()" @click="onClick">
                 <span class="slider round"></span>
             </label>
+        </div>
+        <div v-else-if="props.type === 'password'" class="password">
+            <input :type="passwordType" :disabled="!!readonly" :name="props.prop" :id="props.prop" v-model="value"
+                @blur="checkValidate()" :key="model?.toString() ?? '-'" @click="onClick">
+            <button @click="passwordVisible = !passwordVisible">
+                <EyeOff v-if="passwordVisible" alt="Hide password" />
+                <EyeOn v-else alt="Show password" />
+            </button>
         </div>
         <input v-else :type="props.type ?? 'text'" :disabled="!!readonly" :name="props.prop" :id="props.prop"
             v-model="value" @blur="checkValidate()" :key="model?.toString() ?? '-'" @click="onClick">
@@ -108,6 +121,35 @@ input {
     color: var(--color-text);
     background-color: var(--color-background);
     width: 100%;
+}
+
+.password {
+    display: flex;
+    flex: 1;
+}
+
+.password>input {
+    border-radius: 0.25rem 0 0 0.25rem;
+    border-right: 0;
+    flex-grow: 1;
+}
+
+.password>button {
+    border: 1px solid var(--color-border);
+    border-radius: 0 0.25rem 0.25rem 0;
+    padding: 0.5rem;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    cursor: pointer;
+    margin: 0;
+
+    min-width: 2rem;
+    line-height: 0;
+}
+
+.password>button>svg {
+    width: 1rem;
+    height: 1rem;
 }
 
 .field.in-table input {
