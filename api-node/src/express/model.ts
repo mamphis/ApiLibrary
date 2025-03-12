@@ -15,7 +15,7 @@ export abstract class Model<T extends { id: string }> {
     onBeforeInsert?(): Promise<boolean>;
     onBeforeDelete?(): Promise<boolean>;
 
-    async toJsonObject() {
+    async toJsonObject(...ignoredFields: (keyof T)[]) {
         const pojo: Record<string, any> = {};
 
         // Get all propertydescriptors for the whole prototype chain
@@ -26,7 +26,12 @@ export abstract class Model<T extends { id: string }> {
 
         for (const key in descriptors) {
             const descriptor = descriptors[key];
-            if (descriptor && 'get' in descriptor && descriptor.get && !this.ignoredFields.includes(key as keyof T)) {
+            if (descriptor &&
+                    'get' in descriptor && 
+                    descriptor.get && 
+                    !this.ignoredFields.includes(key as keyof T) && 
+                    !ignoredFields.includes(key as keyof T)
+                ) {
                 pojo[key] = await this[key as keyof this];
             }
         }
