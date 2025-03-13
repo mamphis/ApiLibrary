@@ -10,6 +10,7 @@ export type Model = {
 export const storeFunctions = (
     getHeaders: () => Promise<HeadersInit> = async () => ({}),
     onHandleErrorResponse?: (response: Response) => Promise<boolean>,
+    transformErrorMessage?: (title: string, traceId: string) => { title: string, message: string },
 ) => {
     const handleErrorResponse = async (response: Response, message?: string) => {
         const { sendNotification } = useNotificationStore();
@@ -20,10 +21,16 @@ export const storeFunctions = (
 
         const error = await response.json();
         const traceId = response.headers.get('ApiTraceId') ?? error.traceId;
-        if (traceId) {
-            sendNotification("error", { title: error.message ?? error.error, message: `Please use the Trace Id "${traceId}" when contacting support.` });
-        } else {
-            sendNotification("warning", { title: error.message ?? error.error });
+
+        if (transformErrorMessage) {
+            const { title, message } = transformErrorMessage(error.message ?? error.error, error.traceId);
+            sendNotification("error", { title, message });
+        } else  {
+            if (traceId) {
+                sendNotification("error", { title: error.message ?? error.error, message: `Please use the Trace Id "${traceId}" when contacting support.` });
+            } else {
+                sendNotification("warning", { title: error.message ?? error.error });
+            }
         }
         console.error(traceId, message, error);
     }
