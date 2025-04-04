@@ -116,44 +116,7 @@ const onKeydown = (e: KeyboardEvent) => {
 </template>
 
 <style scoped>
-.field {
-    margin-bottom: 1rem;
-    display: flex;
-    width: 100%;
-
-    align-items: center;
-}
-
-label {
-    flex: 1;
-    max-width: 250px;
-    text-align: right;
-    margin-right: 1rem;
-}
-
-input {
-    flex: 1;
-    border: 1px solid var(--color-border);
-    border-radius: 0.25rem;
-    padding: 0.5rem;
-    color: var(--color-text);
-    background-color: var(--color-background);
-    width: 100%;
-}
-
-.field.in-table input {
-    border-radius: 0;
-    background-color: transparent;
-}
-
-.field.in-table {
-    margin-bottom: 0rem;
-}
-
-input:disabled {
-    background-color: var(--color-background-soft);
-    color: var(--color-text);
-}
+@import '@/assets/style/field.css';
 
 .select-wrapper {
     position: absolute;
@@ -177,5 +140,6 @@ input:disabled {
 .input-wrapper {
     position: relative;
     flex: 1;
+    width: 100%;
 }
 </style>

@@ -64,6 +64,7 @@ class Logger {
             ip: req.ip,
             sessionId: req.headers.sessionid?.toString(),
             userAgent: req.headers['user-agent']?.toString(),
+            locals: res.locals,
         });
     }
 
