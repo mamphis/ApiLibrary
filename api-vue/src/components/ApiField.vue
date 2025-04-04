@@ -4,7 +4,7 @@ import type { ValueType } from '../types/helper';
 import EyeOff from '@/assets/eye-off.svg';
 import EyeOn from '@/assets/eye-on.svg';
 
-type FieldType = 'password' | 'date' | 'time' | 'number' | 'checkbox' | 'text';
+type FieldType = 'password' | 'date' | 'time' | 'number' | 'checkbox' | 'text' | 'file';
 
 const props = defineProps<{
     label: string,
@@ -92,36 +92,15 @@ const passwordType = computed(() => passwordVisible.value ? 'text' : 'password')
                 <EyeOn v-else alt="Show password" />
             </button>
         </div>
+        <input v-else-if="props.type === 'file'" type="file" :disabled="!!readonly" :name="props.prop" :id="props.prop"
+            @change="checkValidate()" @click="onClick">
         <input v-else :type="props.type ?? 'text'" :disabled="!!readonly" :name="props.prop" :id="props.prop"
             v-model="value" @blur="checkValidate()" :key="model?.toString() ?? '-'" @click="onClick">
     </div>
 </template>
 
 <style scoped>
-.field {
-    margin-bottom: 1rem;
-    display: flex;
-    width: 100%;
-
-    align-items: center;
-}
-
-label {
-    flex: 1;
-    max-width: 250px;
-    text-align: right;
-    margin-right: 1rem;
-}
-
-input {
-    flex: 1;
-    border: 1px solid var(--color-border);
-    border-radius: 0.25rem;
-    padding: 0.5rem;
-    color: var(--color-text);
-    background-color: var(--color-background);
-    width: 100%;
-}
+@import '@/assets/style/field.css';
 
 .password {
     display: flex;
@@ -159,11 +138,6 @@ input {
 
 .field.in-table {
     margin-bottom: 0rem;
-}
-
-input:disabled {
-    background-color: var(--color-background-soft);
-    color: var(--color-text);
 }
 
 .switch {
@@ -222,21 +196,5 @@ input:checked+.slider:before {
 
 .slider.round:before {
     border-radius: 50%;
-}
-
-@media screen and (max-width: 768px) {
-    .field {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    label {
-        font-size: smaller;
-    }
-}
-
-.clickable input {
-    text-decoration: underline;
-    cursor: pointer;
 }
 </style>

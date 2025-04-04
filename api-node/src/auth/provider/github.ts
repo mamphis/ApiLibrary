@@ -8,7 +8,13 @@ type GithubUser = {
     id: number;
     name: string;
 }
-export class GithubProvider implements Provider {
+
+type GithubAuthUser = {
+    id: string;
+    name: string;
+}
+
+export class GithubProvider implements Provider<GithubAuthUser> {
     private states = new Map<string, string>();
 
     constructor(private clientId: string, private clientSecret: string, private redirectUrl: string) {
@@ -75,7 +81,7 @@ export class GithubProvider implements Provider {
         return data.access_token;
     }
 
-    async getUser(req: Request, accessToken: string): Promise<AuthenticatorResponse> {
+    async getUser(req: Request, accessToken: string): Promise<AuthenticatorResponse<GithubAuthUser>> {
         const logger = req.logger.startSpan('getUser');
 
         logger.debug('Getting user');
@@ -97,6 +103,7 @@ export class GithubProvider implements Provider {
             authenticator: 'github',
             user: {
                 id: user.login,
+                name: user.name,
             },
         };
     }

@@ -71,7 +71,7 @@ export class Authenticator<T extends User> {
     }
 }
 
-export const getAuthRouter = <T extends User>(provider: Provider, generateAuthResponse: (req: Request, authResponse: AuthenticatorResponse) => Promise<T>): Router => {
+export const getAuthRouter = <T extends User>(provider: Provider<T>, generateAuthResponse: (req: Request, authResponse: AuthenticatorResponse<T>) => Promise<T>): Router => {
     const router: Router = Router();
 
     router.get('/url', async (req, res, next) => {

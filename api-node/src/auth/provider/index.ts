@@ -1,2 +1,2 @@
 export { GithubProvider } from './github';
-export type { AuthenticatorResponse } from './provider';
+export type { AuthenticatorResponse, Provider } from './provider';

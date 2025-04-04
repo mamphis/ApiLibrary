@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { useSlots } from 'vue';
 
+const props = defineProps<{
+    height?: string,
+    width?: string,
+}>();
 
 const visible = defineModel<boolean>('visible');
 const hide = () => {
@@ -8,8 +12,6 @@ const hide = () => {
 };
 
 const slots = useSlots();
-
-
 </script>
 
 <template>
@@ -21,7 +23,7 @@ const slots = useSlots();
             <div class="modal-header" v-if="!!slots['header']">
                 <slot name="header"></slot>
             </div>
-            <div class="modal-content">
+            <div class="modal-content" :style="{ height: props.height, width: props.width }">
                 <slot></slot>
             </div>
             <div class="modal-footer" v-if="!!slots['footer']">
@@ -61,6 +63,12 @@ const slots = useSlots();
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
     min-width: 50%;
     min-height: 50%;
+
+    height: 50%;
+    width: 50%;
+
+    display: flex;
+    flex-direction: column;
 }
 
 .modal-header {
@@ -99,5 +107,6 @@ const slots = useSlots();
 
 .modal-content {
     margin-top: 20px;
+    flex-grow: 1;
 }
 </style>
