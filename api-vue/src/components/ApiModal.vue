@@ -17,13 +17,13 @@ const slots = useSlots();
 <template>
     <div class="modal" v-if="visible">
         <div class="modal-background" @click="hide()"></div>
-        <div class="modal-container">
+        <div class="modal-container"  :style="{ height: props.height, width: props.width }">
             <span class="modal-close" @click="hide()"></span>
 
             <div class="modal-header" v-if="!!slots['header']">
                 <slot name="header"></slot>
             </div>
-            <div class="modal-content" :style="{ height: props.height, width: props.width }">
+            <div class="modal-content">
                 <slot></slot>
             </div>
             <div class="modal-footer" v-if="!!slots['footer']">
