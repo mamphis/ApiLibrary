@@ -1,13 +1,13 @@
 <script lang="ts" setup>
-import type { Model } from '../stores/storeFunctions';
-import DropDown from './ApiDropDown.vue';
-import { nextTick, ref } from 'vue';
+import type { Model } from "../stores/storeFunctions";
+import DropDown from "./ApiDropDown.vue";
+import { nextTick, ref } from "vue";
 
 type NavigatableRoute = Model & {
-    id: string,
-    name: string,
-    group: string,
-}
+    id: string;
+    name: string;
+    group: string;
+};
 
 const items = defineModel<NavigatableRoute[]>();
 if (!items.value) {
@@ -15,32 +15,35 @@ if (!items.value) {
 }
 
 const emits = defineEmits<{
-    (e: 'routeSelected', route: NavigatableRoute): void,
+    (e: "routeSelected", route: NavigatableRoute): void;
 }>();
 
-const navigate = (prop: string, id?: string, model?: Model) => {
+const navigate = (prop: string, id: string | null, model?: Model) => {
     if (!id) return;
 
     const route = items.value?.find((r) => r.id === id);
     if (!route) return;
 
-    emits('routeSelected', route);
-}
+    emits("routeSelected", route);
+    nextTick(() => {
+        searchbarVisible.value = false;
+    });
+};
 
-const selectedRoute = ref('');
+const selectedRoute = ref("");
 const searchbarVisible = ref(false);
 const searchInput = ref<InstanceType<typeof DropDown> | null>(null);
 
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'q' && e.altKey) {
-        selectedRoute.value = '';
+document.addEventListener("keydown", (e) => {
+    if (e.key === "q" && e.altKey) {
+        selectedRoute.value = "";
         searchbarVisible.value = true;
         nextTick(() => {
             searchInput.value?.focus();
         });
     }
 
-    if (e.key === 'Escape' && searchbarVisible.value) {
+    if (e.key === "Escape" && searchbarVisible.value) {
         searchbarVisible.value = false;
     }
 });
@@ -48,8 +51,17 @@ document.addEventListener('keydown', (e) => {
 
 <template>
     <div class="searchbar" v-if="searchbarVisible">
-        <DropDown ref="searchInput" v-model="selectedRoute" :in-table="true" label="" prop="" v-if="items" :list="items"
-            :display-values="['group', 'name']" @validate="navigate">
+        <DropDown
+            ref="searchInput"
+            v-model="selectedRoute"
+            :in-table="true"
+            label=""
+            prop=""
+            v-if="items"
+            :list="items"
+            :display-values="['group', 'name']"
+            @validate="navigate"
+        >
         </DropDown>
     </div>
 </template>
@@ -68,7 +80,7 @@ document.addEventListener('keydown', (e) => {
     height: 3rem;
 }
 
-.searchbar>div {
+.searchbar > div {
     width: 50%;
 
     background-color: var(--color-background-soft);
