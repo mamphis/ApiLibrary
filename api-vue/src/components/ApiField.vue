@@ -36,7 +36,8 @@ if (!type) {
             type = 'number';
             break;
         case 'string':
-            if (model.value.includes('T')) {
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD format
+            if (dateRegex.test(model.value)) {
                 type = 'date';
             } else {
                 type = 'text';
