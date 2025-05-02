@@ -6,7 +6,9 @@
     "publish-lib": "npm run build && npm publish --access public"
   },
   "dependencies": {
-    "fuse.js": "^7.0.0"
+    "@primeuix/themes": "^1.0.3",
+    "fuse.js": "^7.0.0",
+    "primevue": "^4.3.3"
   },
   "peerDependencies": {
     "pinia": "^2.2.2",

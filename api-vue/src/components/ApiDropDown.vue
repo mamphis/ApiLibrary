@@ -1,145 +1,80 @@
 <script setup lang="ts">
 import type { ValueType } from '../types/helper';
 import Fuse from 'fuse.js';
+import { AutoComplete, AutoCompleteCompleteEvent, AutoCompleteOptionSelectEvent } from 'primevue';
 import { computed, ref, nextTick, watch } from 'vue';
 
 type Model = {
     id: string;
-    [key: string]: ValueType | Model,
-}
+    [key: string]: ValueType | Model;
+};
 
 const props = defineProps<{
-    label: string,
-    prop: string,
-    readonly?: boolean,
-    list: Model[],
-    displayValues: Array<keyof Model>,
-    inTable?: boolean,
-}>()
+    label: string;
+    prop: string;
+    readonly?: boolean;
+    list: Model[];
+    displayValues: Array<keyof Model>;
+    inTable?: boolean;
+}>();
 
-const fuse = new Fuse(props.list, {
-    keys: props.displayValues as string[],
-    includeScore: true,
-});
-
-watch(() => props.list, () => {
-    fuse.setCollection(props.list);
-});
-
-const model = defineModel<ValueType>()
+const model = defineModel<ValueType>();
 
 const emits = defineEmits<{
-    (e: 'validate', prop: string, id?: string, model?: Model): void,
+    (e: 'validate', prop: string, id: string | null, selectedValue?: Model): void;
 }>();
 
 const inputField = ref<HTMLInputElement | null>(null);
 
+const fuse = new Fuse(props.list, {
+    keys: props.displayValues as string[],
+    threshold: 0.3,
+});
+
+const filteredList = ref<Model[]>([])
+
+const onComplete = (event: AutoCompleteCompleteEvent) => {
+    const { query } = event;
+
+    const result = fuse.search(query);
+    filteredList.value = result.map((item) => item.item);
+}
+
+const onSelect = (event: AutoCompleteOptionSelectEvent) => {
+    emits('validate', props.prop, event.value.id, event.value);
+}
+
 const focus = () => {
     inputField.value?.focus();
-}
+};
 
 defineExpose({
     focus,
 });
-
-const setState = (visible: boolean) => {
-    nextTick(() => {
-        inputHasFocus.value = visible;
-    });
-}
-
-const select = (selection?: Model) => {
-    setState(false);
-    emits('validate', props.prop, selection?.id, selection);
-    if (selection) {
-        model.value = selection[props.displayValues[0]] as string;
-    }
-}
-
-const onInputBlur = () => {
-    setState(false);
-    nextTick(() => {
-        if (!model.value) {
-            emits('validate', props.prop, undefined, undefined);
-        }
-    });
-}
-
-const items = computed(() => {
-    if (!model.value) { return props.list; }
-    const list = fuse.search(model?.value?.toString() ?? '');
-    return list.sort((a, b) => (a.score ?? 1) - (b.score ?? 1)).map(l => l.item);
-
-    return props.list.filter(item => {
-        if (!model.value) { return true; }
-        return props.displayValues.some(d => {
-            const value = item[d];
-            if (!value) { return false };
-            return value.toString().toLowerCase().includes(model.value!.toString().toLowerCase());
-        });
-    }).splice(0, 5);
-});
-
-const preselectedIndex = ref(0);
-const inputHasFocus = ref(false);
-
-const onKeydown = (e: KeyboardEvent) => {
-    setState(true);
-    if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        preselectedIndex.value = Math.min(preselectedIndex.value + 1, items.value.length - 1);
-    } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        preselectedIndex.value = Math.max(preselectedIndex.value - 1, 0);
-    } else if (e.key === 'Enter') {
-        e.preventDefault();
-        select(items.value[preselectedIndex.value]);
-    }
-}
-
 </script>
 
 <template>
     <div class="field" :class="{ 'in-table': !!props.inTable }">
         <label :for="props.prop" v-if="!props.inTable">{{ props.label }}</label>
-        <div class="input-wrapper">
-            <input type="text" :disabled="!!readonly" :name="props.prop" :id="props.prop" v-model="model"
-                @focus="setState(true)" @blur="onInputBlur()" @keydown="onKeydown" autocomplete="off" ref="inputField">
-            <div class="select-wrapper" v-if="inputHasFocus">
-                <span class="select-item" :class="{ preselect: index === preselectedIndex }"
-                    v-for="(item, index) in items" :key="item.id" @mousedown="select(item)">
-                    {{ displayValues.filter(d => !!item[d]).map(d => item[d]).join(' - ') }}
-                </span>
-            </div>
-        </div>
+        <AutoComplete
+            v-model="model"
+            @complete="onComplete"
+            @item-select="onSelect"
+            :suggestions="filteredList"
+            size="small"
+            input-class="field-input"
+            dropdown-class="select-wrapper"
+            :minlength="0"
+            :disabled="props.readonly"
+            :option-label="(data) => data[props.displayValues.at(0) as string]"
+            fluid
+        >
+            <template #option="slotProps">
+                <div>{{ displayValues.map(displayKey => slotProps.option[displayKey]).join(' - ') }}</div>
+            </template>
+        </AutoComplete>
     </div>
 </template>
-
-<style scoped>
-@import '@/assets/style/field.css';
-
-.select-wrapper {
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    z-index: 10;
-    background-color: var(--color-background-soft);
-    width: 100%;
-}
-
-.select-item {
-    padding: 0.5rem;
-    z-index: 11;
-    cursor: pointer;
-}
-
-.select-item.preselect {
-    background-color: var(--color-border);
-}
-
-.input-wrapper {
-    position: relative;
-    flex: 1;
-    width: 100%;
-}
+<style lang="css" scoped>
+@import url('@/assets/style/field.css');
 </style>

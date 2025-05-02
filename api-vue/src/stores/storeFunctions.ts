@@ -52,6 +52,7 @@ export const storeFunctions = (
                     fetchRecs();
                 } else {
                     handleErrorResponse(response, 'Failed to delete record:');
+                    return rec;
                 }
             };
         },
@@ -79,6 +80,7 @@ export const storeFunctions = (
                     }
                 } else {
                     handleErrorResponse(response, 'Failed to save record:');
+                    return rec;
                 };
             };
         },
@@ -111,6 +113,7 @@ export const storeFunctions = (
                     }
                 } else {
                     handleErrorResponse(response, 'Failed to validate record:');
+                    return rec;
                 };
             };
         },
