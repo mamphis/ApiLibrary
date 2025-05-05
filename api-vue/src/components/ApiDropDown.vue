@@ -24,28 +24,28 @@ const emits = defineEmits<{
     (e: 'validate', prop: string, id: string | null, selectedValue?: Model): void;
 }>();
 
-const inputField = ref<HTMLInputElement | null>(null);
+const inputField = ref<(typeof AutoComplete & { $el?: HTMLDivElement }) | null>(null);
 
 const fuse = new Fuse(props.list, {
     keys: props.displayValues as string[],
     threshold: 0.3,
 });
 
-const filteredList = ref<Model[]>([])
+const filteredList = ref<Model[]>([]);
 
 const onComplete = (event: AutoCompleteCompleteEvent) => {
     const { query } = event;
 
     const result = fuse.search(query);
     filteredList.value = result.map((item) => item.item);
-}
+};
 
 const onSelect = (event: AutoCompleteOptionSelectEvent) => {
     emits('validate', props.prop, event.value.id, event.value);
-}
+};
 
 const focus = () => {
-    inputField.value?.focus();
+    inputField.value?.$el?.querySelector('input')?.focus();
 };
 
 defineExpose({
@@ -57,11 +57,13 @@ defineExpose({
     <div class="field" :class="{ 'in-table': !!props.inTable }">
         <label :for="props.prop" v-if="!props.inTable">{{ props.label }}</label>
         <AutoComplete
+            ref="inputField"
             v-model="model"
             @complete="onComplete"
             @item-select="onSelect"
             :suggestions="filteredList"
             size="small"
+            complete-on-focus
             input-class="field-input"
             dropdown-class="select-wrapper"
             :minlength="0"
@@ -70,7 +72,11 @@ defineExpose({
             fluid
         >
             <template #option="slotProps">
-                <div>{{ displayValues.map(displayKey => slotProps.option[displayKey]).join(' - ') }}</div>
+                <div>
+                    {{
+                        displayValues.map((displayKey) => slotProps.option[displayKey]).join(' - ')
+                    }}
+                </div>
             </template>
         </AutoComplete>
     </div>
