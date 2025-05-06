@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref } from 'vue';
+import { computed, defineAsyncComponent, ref } from 'vue';
 import type { ValueType } from '../types/helper';
 
 const Password = defineAsyncComponent(() => import('primevue/password'));
@@ -253,6 +254,7 @@ const numberInputCurrency = computed(() => {
             v-model="dateValue"
             :time-only="type === 'time'"
             showIcon
+            showIcon
             dateFormat="dd.mm.yy"
             fluid
             @blur="checkValidate()"
@@ -265,6 +267,7 @@ const numberInputCurrency = computed(() => {
             :name="props.prop"
             @blur="checkValidate()"
             fluid
+            toggleMask
             toggleMask
             v-model="stringValue"
         >
