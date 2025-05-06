@@ -4,6 +4,7 @@ import { useSlots } from 'vue';
 const props = defineProps<{
     height?: string,
     width?: string,
+    overflow?: boolean
 }>();
 
 const visible = defineModel<boolean>('visible');
@@ -12,6 +13,8 @@ const hide = () => {
 };
 
 const slots = useSlots();
+
+
 </script>
 
 <template>
@@ -23,7 +26,7 @@ const slots = useSlots();
             <div class="modal-header" v-if="!!slots['header']">
                 <slot name="header"></slot>
             </div>
-            <div class="modal-content">
+            <div class="modal-content" :style="{ overflow: props.overflow ? 'auto' : 'hidden' }">
                 <slot></slot>
             </div>
             <div class="modal-footer" v-if="!!slots['footer']">
