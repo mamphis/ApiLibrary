@@ -15,11 +15,12 @@ label {
     max-width: 250px;
     text-align: right;
     margin-right: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.p-autocomplete,
-.p-inputtext,
-.p-inputnumber {
+.p-inputwrapper,
+.p-inputtext {
     flex: 1;
 }
 
