@@ -292,7 +292,7 @@ export class ApiRouter<
             const updateSpan = prepareSpan.startSpan();
             try {
                 updateSpan.verbose('{scope} Applying changes to record');
-                await rec.apply(req.body);
+                await rec.apply(req.body, req, res);
                 updateSpan.verbose('{scope} Saving record');
                 await rec.save();
             } catch (e: unknown) {

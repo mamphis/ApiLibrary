@@ -20,7 +20,8 @@ label {
 }
 
 .p-inputwrapper,
-.p-inputtext {
+.p-inputtext,
+.p-textarea {
     flex: 1;
 }
 
