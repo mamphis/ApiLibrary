@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { ValueType } from '../types/helper';
 import Fuse from 'fuse.js';
-import { AutoComplete, AutoCompleteCompleteEvent, AutoCompleteOptionSelectEvent } from 'primevue';
-import { computed, ref, nextTick, watch } from 'vue';
+import type { AutoCompleteCompleteEvent, AutoCompleteOptionSelectEvent } from 'primevue';
+import { defineAsyncComponent, ref } from 'vue';
+import type { ValueType } from '../types/helper';
+const AutoComplete = defineAsyncComponent(() => import('primevue/autocomplete'));
 
 type Model = {
     id: string;
