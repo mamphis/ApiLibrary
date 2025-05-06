@@ -7,8 +7,9 @@ const InputText = defineAsyncComponent(() => import('primevue/inputtext'));
 const InputNumber = defineAsyncComponent(() => import('primevue/inputnumber'));
 const ToggleSwitch = defineAsyncComponent(() => import('primevue/toggleswitch'));
 const DatePicker = defineAsyncComponent(() => import('primevue/datepicker'));
+const TextArea = defineAsyncComponent(() => import('primevue/textarea'));
 
-const StringFields = ['text', 'password'] as const;
+const StringFields = ['text', 'password', 'textarea'] as const;
 const NumberFields = ['number', 'money', 'decimal'] as const;
 const DateFields = ['date', 'time'] as const;
 const BooleanFields = ['checkbox'] as const;
@@ -280,6 +281,17 @@ const numberInputCurrency = computed(() => {
             :name="props.prop"
             fluid
             @blur="checkValidate()"
+        />
+        <TextArea
+            v-else-if="type === 'textarea'"
+            :disabled="!!readonly"
+            :name="props.prop"
+            :id="props.prop"
+            v-model="stringValue"
+            rows="5"
+            @blur="checkValidate()"
+            :autoResize="true"
+            fluid
         />
         <InputText
             v-else
