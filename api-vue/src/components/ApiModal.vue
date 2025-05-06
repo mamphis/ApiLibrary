@@ -46,7 +46,7 @@ const slots = useSlots();
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 90;
 }
 
 .modal-background {

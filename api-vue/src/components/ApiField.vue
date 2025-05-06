@@ -253,7 +253,6 @@ const numberInputCurrency = computed(() => {
             v-model="dateValue"
             :time-only="type === 'time'"
             showIcon
-            showIcon
             dateFormat="dd.mm.yy"
             fluid
             @blur="checkValidate()"
@@ -266,7 +265,6 @@ const numberInputCurrency = computed(() => {
             :name="props.prop"
             @blur="checkValidate()"
             fluid
-            toggleMask
             toggleMask
             v-model="stringValue"
         >
