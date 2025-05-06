@@ -1,3 +1,5 @@
+import { Request, Response } from "express";
+
 export abstract class Model<T extends { id: string }> {
     protected tasks: Promise<any>[] = [];
 
@@ -39,15 +41,20 @@ export abstract class Model<T extends { id: string }> {
         return pojo;
     }
 
-    async apply(obj: Record<string, any>) {
+    currentMetadata: Record<string, any> = {};
+
+    async apply(obj: Record<string, any>, request: Request, response: Response) {
         await Promise.all(this.tasks);
 
         if (this.onBeforeModify && !await this.onBeforeModify()) {
             return;
         }
 
-        const descriptors = Object.getOwnPropertyDescriptors(Object.getPrototypeOf(this));
+        this.currentMetadata.request = request;
+        this.currentMetadata.response = response;
 
+        const descriptors = Object.getOwnPropertyDescriptors(Object.getPrototypeOf(this));
+        
         for (const key in descriptors) {
             const descriptor = descriptors[key];
             if (descriptor && 'set' in descriptor && descriptor.set) {
