@@ -8,7 +8,17 @@ const InputNumber = defineAsyncComponent(() => import('primevue/inputnumber'));
 const ToggleSwitch = defineAsyncComponent(() => import('primevue/toggleswitch'));
 const DatePicker = defineAsyncComponent(() => import('primevue/datepicker'));
 
-type FieldType = 'password' | 'date' | 'time' | 'number' | 'checkbox' | 'text' | 'file' | 'money' | 'decimal';
+const StringFields = ['text', 'password'] as const;
+const NumberFields = ['number', 'money', 'decimal'] as const;
+const DateFields = ['date', 'time'] as const;
+const BooleanFields = ['checkbox'] as const;
+
+type StringFieldType = (typeof StringFields)[number];
+type NumberFieldType = (typeof NumberFields)[number];
+type DateFieldType = (typeof DateFields)[number];
+type BooleanFieldType = (typeof BooleanFields)[number];
+
+type FieldType = StringFieldType | NumberFieldType | DateFieldType | BooleanFieldType;
 
 const props = defineProps<{
     label: string;
@@ -51,20 +61,52 @@ if (!type) {
     }
 }
 
+function isFieldOfType(type: unknown, fieldTypes: readonly FieldType[]): boolean {
+    if (!type) {
+        return false;
+    }
+
+    if (typeof type !== 'string') {
+        return false;
+    }
+
+    return fieldTypes.includes(type as FieldType);
+}
+
+function isBooleanFieldType(type: unknown): type is BooleanFieldType {
+    return isFieldOfType(type, BooleanFields);
+}
+
+function isNumberFieldType(type: unknown): type is NumberFieldType {
+    return isFieldOfType(type, NumberFields);
+}
+
+function isDateFieldType(type: unknown): type is DateFieldType {
+    return isFieldOfType(type, DateFields);
+}
+
+function isStringFieldType(type: unknown): type is StringFieldType {
+    return isFieldOfType(type, StringFields);
+}
+
 const value = computed(() => {
-    if (type === 'checkbox') {
+    if (!type) {
+        return undefined;
+    }
+
+    if (isBooleanFieldType(type)) {
         return booleanValue.value;
-    } else if (type === 'number' || type === 'money' || type === 'decimal') {
+    } else if (isNumberFieldType(type)) {
         return numberValue.value;
-    } else if (type === 'date' || type === 'time') {
+    } else if (isDateFieldType(type)) {
         return dateValue.value;
-    } else if (type === 'password' || type === 'text') {
+    } else if (isStringFieldType(type)) {
         return stringValue.value;
     }
     return undefined;
 });
 
-if (type === 'checkbox') {
+if (isBooleanFieldType(type)) {
     if (typeof model.value === 'boolean') {
         booleanValue.value = model.value;
     } else {
@@ -104,7 +146,7 @@ if (type === 'time') {
     }
 }
 
-if (type === 'number' || type === 'money' || type === 'decimal') {
+if (isNumberFieldType(type)) {
     if (typeof model.value === 'number') {
         numberValue.value = model.value;
     } else if (typeof model.value === 'string') {
@@ -119,7 +161,7 @@ if (type === 'number' || type === 'money' || type === 'decimal') {
     }
 }
 
-if (type === 'password' || type === 'text' || !type) {
+if (isStringFieldType(type) || !type) {
     if (typeof model.value === 'string') {
         stringValue.value = model.value;
     } else {
@@ -187,7 +229,6 @@ const numberInputCurrency = computed(() => {
     }
     return undefined;
 });
-
 </script>
 
 <template>
@@ -213,7 +254,8 @@ const numberInputCurrency = computed(() => {
             showIcon
             dateFormat="dd.mm.yy"
             fluid
-            @blur="checkValidate()" />
+            @blur="checkValidate()"
+        />
         <Password
             v-else-if="type === 'password'"
             size="small"
@@ -226,15 +268,6 @@ const numberInputCurrency = computed(() => {
             v-model="stringValue"
         >
         </Password>
-        <input
-            v-else-if="type === 'file'"
-            type="file"
-            :disabled="!!readonly"
-            :name="props.prop"
-            :id="props.prop"
-            @change="checkValidate()"
-            @click="onClick"
-        />
         <InputNumber
             v-else-if="type === 'number' || type === 'money' || type === 'decimal'"
             v-model="numberValue"
