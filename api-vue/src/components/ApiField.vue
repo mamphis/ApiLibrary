@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, defineAsyncComponent, ref } from 'vue';
 import type { ValueType } from '../types/helper';
-import EyeOff from '@/assets/eye-off.svg';
-import EyeOn from '@/assets/eye-on.svg';
-import { DatePicker, InputNumber, InputText, Password, ToggleSwitch } from 'primevue';
+
+const Password = defineAsyncComponent(() => import('primevue/password'));
+const InputText = defineAsyncComponent(() => import('primevue/inputtext'));
+const InputNumber = defineAsyncComponent(() => import('primevue/inputnumber'));
+const ToggleSwitch = defineAsyncComponent(() => import('primevue/toggleswitch'));
+const DatePicker = defineAsyncComponent(() => import('primevue/datepicker'));
 
 type FieldType = 'password' | 'date' | 'time' | 'number' | 'checkbox' | 'text' | 'file' | 'money' | 'decimal';
 
@@ -207,6 +210,7 @@ const numberInputCurrency = computed(() => {
             :id="props.prop"
             v-model="dateValue"
             :time-only="type === 'time'"
+            showIcon
             dateFormat="dd.mm.yy"
             fluid
             @blur="checkValidate()" />
@@ -218,16 +222,9 @@ const numberInputCurrency = computed(() => {
             :name="props.prop"
             @blur="checkValidate()"
             fluid
-            toggle-mask
+            toggleMask
             v-model="stringValue"
         >
-            <template #maskicon>
-                <EyeOff alt="Hide password" />
-            </template>
-
-            <template #unmaskicon>
-                <EyeOn alt="Show password" />
-            </template>
         </Password>
         <input
             v-else-if="type === 'file'"
