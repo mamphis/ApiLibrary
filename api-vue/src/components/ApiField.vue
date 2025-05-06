@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref } from 'vue';
-import { computed, defineAsyncComponent, ref } from 'vue';
 import type { ValueType } from '../types/helper';
 
 const Password = defineAsyncComponent(() => import('primevue/password'));
