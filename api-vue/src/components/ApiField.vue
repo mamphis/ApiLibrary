@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref } from 'vue';
+import { computed, defineAsyncComponent, ref, nextTick } from 'vue';
 import type { ValueType } from '../types/helper';
 
 const Password = defineAsyncComponent(() => import('primevue/password'));
@@ -178,33 +178,30 @@ const emits = defineEmits<{
 let originalValue = value.value;
 
 const checkValidate = () => {
-    if (props.readonly) {
-        return;
-    }
-    if (value.value === originalValue) {
-        return;
-    }
-
-    let updatedValue = value.value;
-    if (type === 'date' && typeof updatedValue === 'string') {
-        updatedValue = new Date(updatedValue);
-    }
-
-    if (type === 'time' && typeof updatedValue === 'string') {
-        if (model.value instanceof Date) {
-            updatedValue = new Date(model.value.toDateString() + ' ' + updatedValue);
+    nextTick(() => {
+        if (props.readonly) {
+            return;
         }
-    }
 
-    emits('validate', props.prop, updatedValue);
-    originalValue = value.value;
-    model.value = updatedValue;
-};
+        if (value.value === originalValue) {
+            return;
+        }
 
-const onClick = () => {
-    if (clickable.value) {
-        emits('click', props.path!);
-    }
+        let updatedValue = value.value;
+        if (type === 'date' && typeof updatedValue === 'string') {
+            updatedValue = new Date(updatedValue);
+        }
+
+        if (type === 'time' && typeof updatedValue === 'string') {
+            if (model.value instanceof Date) {
+                updatedValue = new Date(model.value.toDateString() + ' ' + updatedValue);
+            }
+        }
+
+        emits('validate', props.prop, updatedValue);
+        originalValue = value.value;
+        model.value = updatedValue;
+    });
 };
 
 const minFractionDigits = computed(() => {
