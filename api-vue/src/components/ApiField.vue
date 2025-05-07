@@ -249,7 +249,7 @@ const numberInputCurrency = computed(() => {
             :id="props.prop"
             v-model="dateValue"
             :time-only="type === 'time'"
-            showIcon
+            :showIcon="!readonly && !props.inTable"
             dateFormat="dd.mm.yy"
             fluid
             @blur="checkValidate()"
