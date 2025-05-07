@@ -5,9 +5,15 @@ export abstract class Model<T extends { id: string }> {
 
     constructor(
         protected rec: T,
-        private db: { upsert: (options: { create: T, update: T, where: { id: string } }) => Promise<T> },
-        private ignoredFields: (keyof T)[] = [],
-    ) { }
+        private db: {
+            upsert: (options: {
+                create: T;
+                update: T;
+                where: { id: string };
+            }) => Promise<T>;
+        },
+        private ignoredFields: (keyof T)[] = []
+    ) {}
 
     get id() {
         return this.rec.id;
@@ -17,23 +23,35 @@ export abstract class Model<T extends { id: string }> {
     onBeforeInsert?(): Promise<boolean>;
     onBeforeDelete?(): Promise<boolean>;
 
+    private getAllDescriptors() {
+        let descriptors: Record<string, TypedPropertyDescriptor<any>> = {};
+        let currentPrototype = Object.getPrototypeOf(this);
+
+        while (currentPrototype && currentPrototype !== Object.prototype) {
+            const currentDescriptors =
+                Object.getOwnPropertyDescriptors(currentPrototype);
+            descriptors = { ...descriptors, ...currentDescriptors };
+            currentPrototype = Object.getPrototypeOf(currentPrototype);
+        }
+
+        return descriptors;
+    }
+
     async toJsonObject(...ignoredFields: (keyof this)[]) {
         const pojo: Record<string, any> = {};
 
-        // Get all propertydescriptors for the whole prototype chain
-        const descriptors = Object.assign({},
-            Object.getOwnPropertyDescriptors(Object.getPrototypeOf(this)),
-            Object.getOwnPropertyDescriptors(Object.getPrototypeOf(this.constructor.prototype)),
-        );
+        // Get all property descriptors from the prototype chain
+        const descriptors = this.getAllDescriptors();
 
         for (const key in descriptors) {
             const descriptor = descriptors[key];
-            if (descriptor &&
-                    'get' in descriptor && 
-                    descriptor.get && 
-                    !this.ignoredFields.includes(key as keyof T) && 
-                    !ignoredFields.includes(key as keyof this)
-                ) {
+            if (
+                descriptor &&
+                "get" in descriptor &&
+                descriptor.get &&
+                !this.ignoredFields.includes(key as keyof T) &&
+                !ignoredFields.includes(key as keyof this)
+            ) {
                 pojo[key] = await this[key as keyof this];
             }
         }
@@ -43,21 +61,25 @@ export abstract class Model<T extends { id: string }> {
 
     currentMetadata: Record<string, any> = {};
 
-    async apply(obj: Record<string, any>, request: Request, response: Response) {
+    async apply(
+        obj: Record<string, any>,
+        request: Request,
+        response: Response
+    ) {
         await Promise.all(this.tasks);
 
-        if (this.onBeforeModify && !await this.onBeforeModify()) {
+        if (this.onBeforeModify && !(await this.onBeforeModify())) {
             return;
         }
 
         this.currentMetadata.request = request;
         this.currentMetadata.response = response;
 
-        const descriptors = Object.getOwnPropertyDescriptors(Object.getPrototypeOf(this));
-        
+        const descriptors = this.getAllDescriptors();
+
         for (const key in descriptors) {
             const descriptor = descriptors[key];
-            if (descriptor && 'set' in descriptor && descriptor.set) {
+            if (descriptor && "set" in descriptor && descriptor.set) {
                 if (key in obj) {
                     const value = await obj[key];
                     this[key as keyof this] = value;
