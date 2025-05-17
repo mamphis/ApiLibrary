@@ -3,7 +3,8 @@
   "version": "0.0.32",
   "scripts": {
     "build": "rimraf dist && vue-tsc && vite build",
-    "publish-lib": "npm run build && npm publish --access public"
+    "publish-lib": "npm run build && npm publish --access public",
+    "dev": "vite build -m development --watch"
   },
   "dependencies": {
     "@primeuix/themes": "^1.0.3",
