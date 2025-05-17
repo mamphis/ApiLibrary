@@ -1,7 +1,8 @@
 <script lang="ts" setup>
+import { nextTick, onMounted, ref, watch } from "vue";
 import type { Model } from "../stores/storeFunctions";
 import DropDown from "./ApiDropDown.vue";
-import { nextTick, ref } from "vue";
+import { useTemplateRef } from "vue";
 
 type NavigatableRoute = Model & {
     id: string;
@@ -10,9 +11,13 @@ type NavigatableRoute = Model & {
 };
 
 const items = defineModel<NavigatableRoute[]>();
-if (!items.value) {
-    items.value = [];
-}
+const routes = ref<NavigatableRoute[]>(items.value ?? []);
+const dropDown = useTemplateRef('inputField');
+
+watch(items, (newRoutes) => {
+    if (!newRoutes) return;
+    routes.value = newRoutes;
+});
 
 const emits = defineEmits<{
     (e: "routeSelected", route: NavigatableRoute): void;
@@ -21,7 +26,7 @@ const emits = defineEmits<{
 const navigate = (prop: string, id: string | null, model?: Model) => {
     if (!id) return;
 
-    const route = items.value?.find((r) => r.id === id);
+    const route = routes.value.find((r) => r.id === id);
     if (!route) return;
 
     emits("routeSelected", route);
@@ -32,14 +37,15 @@ const navigate = (prop: string, id: string | null, model?: Model) => {
 
 const selectedRoute = ref("");
 const searchbarVisible = ref(false);
-const searchInput = ref<InstanceType<typeof DropDown> | null>(null);
 
 document.addEventListener("keydown", (e) => {
     if (e.key === "q" && e.altKey) {
         selectedRoute.value = "";
         searchbarVisible.value = true;
         nextTick(() => {
-            searchInput.value?.focus();
+            if (dropDown.value) {
+                dropDown.value.focus();
+            }
         });
     }
 
@@ -52,13 +58,12 @@ document.addEventListener("keydown", (e) => {
 <template>
     <div class="searchbar" v-if="searchbarVisible">
         <DropDown
-            ref="searchInput"
+            ref="inputField"
             v-model="selectedRoute"
             :in-table="true"
             label=""
             prop=""
-            v-if="items"
-            :list="items"
+            :list="routes"
             :display-values="['group', 'name']"
             @validate="navigate"
         >
