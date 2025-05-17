@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import Fuse from 'fuse.js';
-import type { AutoCompleteCompleteEvent, AutoCompleteOptionSelectEvent } from 'primevue';
-import { defineAsyncComponent, ref } from 'vue';
+import {
+    AutoComplete,
+    type AutoCompleteCompleteEvent,
+    type AutoCompleteOptionSelectEvent,
+} from 'primevue';
+import { defineAsyncComponent, onMounted, ref, useTemplateRef, watch } from 'vue';
 import type { ValueType } from '../types/helper';
-const AutoComplete = defineAsyncComponent(() => import('primevue/autocomplete'));
+import { nextTick } from 'vue';
 
 type Model = {
     id: string;
@@ -25,20 +29,37 @@ const emits = defineEmits<{
     (e: 'validate', prop: string, id: string | null, selectedValue?: Model): void;
 }>();
 
-const inputField = ref<(typeof AutoComplete & { $el?: HTMLDivElement }) | null>(null);
+const autoComplete = useTemplateRef<typeof AutoComplete & { $el: HTMLDivElement }>('inputField');
 
 const fuse = new Fuse(props.list, {
     keys: props.displayValues as string[],
     threshold: 0.3,
+    minMatchCharLength: 0,
 });
 
+watch(
+    () => props.list,
+    () => {
+        fuse.setCollection(props.list);
+    }
+);
+
 const filteredList = ref<Model[]>([]);
+
+const search = (query: string) => {
+    if (!query || query === '') {
+        filteredList.value = props.list;
+        return;
+    }
+
+    const result = fuse.search(query);
+    filteredList.value = result.map((item) => item.item);
+};
 
 const onComplete = (event: AutoCompleteCompleteEvent) => {
     const { query } = event;
 
-    const result = fuse.search(query);
-    filteredList.value = result.map((item) => item.item);
+    search(query);
 };
 
 const onSelect = (event: AutoCompleteOptionSelectEvent) => {
@@ -46,7 +67,8 @@ const onSelect = (event: AutoCompleteOptionSelectEvent) => {
 };
 
 const focus = () => {
-    inputField.value?.$el?.querySelector('input')?.focus();
+    autoComplete.value?.$el?.querySelector('input')?.focus();
+    search('');
 };
 
 defineExpose({
