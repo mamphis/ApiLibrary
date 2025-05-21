@@ -8,6 +8,7 @@
     "dep": "npm ci --workspaces",
     "build": "npm run build --workspaces",
     "updateVersion": "git checkout -b release && npm version patch --workspaces --git-tag-version=false",
-    "publish-lib": "npm run publish-lib --workspaces"
+    "publish-lib": "npm run publish-lib --workspaces",
+    "test": "npm run test --workspaces --if-present"
   }
 }

@@ -235,7 +235,7 @@ const numberInputCurrency = computed(() => {
         <ToggleSwitch
             v-if="type === 'checkbox'"
             size="small"
-            :disabled="!!readonly"
+            :readonly="!!readonly"
             :name="props.prop"
             :id="props.prop"
             v-model="booleanValue"

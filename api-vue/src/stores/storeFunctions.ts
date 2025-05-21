@@ -1,21 +1,33 @@
-import type { ValueType } from "../types/helper";
-import type { Ref } from "vue";
-import { useLockStore } from "./lockStore";
-import { useNotificationStore } from "./notification";
+import type { ValueType } from '../types/helper';
+import type { Ref } from 'vue';
+import { useLockStore } from './lockStore';
+import { useNotificationStore } from './notification';
 
 export type Model = {
     id: string;
-}
+};
+
+type EqualsFilter<T, key extends keyof T> = {
+    _eq: T[key];
+};
+
+type LikeFilter<T, key extends keyof T> = {
+    _like: T[key];
+};
+
+export type Filter<T extends Model> = {
+    [key in keyof T]?: EqualsFilter<T, key> | LikeFilter<T, key>;
+};
 
 export const storeFunctions = (
     getHeaders: () => Promise<HeadersInit> = async () => ({}),
     onHandleErrorResponse?: (response: Response) => Promise<boolean>,
-    transformErrorMessage?: (title: string, traceId: string) => { title: string, message: string },
+    transformErrorMessage?: (title: string, traceId: string) => { title: string; message: string }
 ) => {
     const handleErrorResponse = async (response: Response, message?: string) => {
         const { sendNotification } = useNotificationStore();
 
-        if (onHandleErrorResponse && await onHandleErrorResponse(response)) {
+        if (onHandleErrorResponse && (await onHandleErrorResponse(response))) {
             return;
         }
 
@@ -23,18 +35,23 @@ export const storeFunctions = (
         const traceId = response.headers.get('ApiTraceId') ?? error.traceId;
 
         if (transformErrorMessage) {
-            const { title, message } = transformErrorMessage(error.message ?? error.error, error.traceId);
-            sendNotification("error", { title, message });
-        } else  {
+            const { title, message } = transformErrorMessage(
+                error.message ?? error.error,
+                error.traceId
+            );
+            sendNotification('error', { title, message });
+        } else {
             if (traceId) {
-                sendNotification("error", { title: error.message ?? error.error, message: `Please use the Trace Id "${traceId}" when contacting support.` });
+                sendNotification('error', {
+                    title: error.message ?? error.error,
+                    message: `Please use the Trace Id "${traceId}" when contacting support.`,
+                });
             } else {
-                sendNotification("warning", { title: error.message ?? error.error });
+                sendNotification('warning', { title: error.message ?? error.error });
             }
         }
         console.error(traceId, message, error);
-    }
-
+    };
 
     return {
         deleteRec: <T extends Model>(url: string, fetchRecs: () => Promise<T[] | undefined>) => {
@@ -43,7 +60,7 @@ export const storeFunctions = (
                 const response = await fetch(`${url}/${rec.id}`, {
                     method: 'DELETE',
                     headers: {
-                        ...await getHeaders(),
+                        ...(await getHeaders()),
                         SessionId: sessionId,
                     },
                 });
@@ -57,14 +74,18 @@ export const storeFunctions = (
             };
         },
 
-        saveRec: <T extends Model>(url: string, fetchRecs: () => Promise<T[] | undefined>, mapper?: (data: any) => T) => {
+        saveRec: <T extends Model>(
+            url: string,
+            fetchRecs: () => Promise<T[] | undefined>,
+            mapper?: (data: any) => T
+        ) => {
             return async (rec: Partial<T>) => {
                 const { sessionId } = useLockStore();
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        ...await getHeaders(),
+                        ...(await getHeaders()),
                         SessionId: sessionId,
                     },
                     body: JSON.stringify(rec),
@@ -81,11 +102,15 @@ export const storeFunctions = (
                 } else {
                     handleErrorResponse(response, 'Failed to save record:');
                     return rec;
-                };
+                }
             };
         },
 
-        validateRec: <T extends Model>(url: string, fetchAll: () => Promise<T[] | undefined>, mapper?: (data: any) => T) => {
+        validateRec: <T extends Model>(
+            url: string,
+            fetchAll: () => Promise<T[] | undefined>,
+            mapper?: (data: any) => T
+        ) => {
             return async (rec: T, key: string, value?: ValueType) => {
                 const { sessionId } = useLockStore();
                 const body = {
@@ -97,7 +122,7 @@ export const storeFunctions = (
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        ...await getHeaders(),
+                        ...(await getHeaders()),
                         SessionId: sessionId,
                     },
                     body: JSON.stringify(body),
@@ -114,18 +139,21 @@ export const storeFunctions = (
                 } else {
                     handleErrorResponse(response, 'Failed to validate record:');
                     return rec;
-                };
+                }
             };
         },
 
-        fetchOne: <T extends Model>(url: string, mapper?: (data: any) => T): () => Promise<T | undefined> => {
+        fetchOne: <T extends Model>(
+            url: string,
+            mapper?: (data: any) => T
+        ): (() => Promise<T | undefined>) => {
             return async () => {
                 const { sessionId } = useLockStore();
                 const response = await fetch(url, {
                     headers: {
-                        ...await getHeaders(),
+                        ...(await getHeaders()),
                         SessionId: sessionId,
-                    }
+                    },
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -140,7 +168,12 @@ export const storeFunctions = (
             };
         },
 
-        fetchAll: <T extends Model>(url: string, records: Ref<T[]>, mapper?: (data: any) => T): () => Promise<T[] | undefined> => {
+        fetchAll: <T extends Model>(
+            url: string,
+            records: Ref<T[]>,
+            filters?: Filter<T>,
+            mapper?: (data: any) => T
+        ): (() => Promise<T[] | undefined>) => {
             const { fetchAllLock } = useLockStore();
 
             if (fetchAllLock.has(url)) {
@@ -153,13 +186,31 @@ export const storeFunctions = (
                 const { sessionId } = useLockStore();
                 const uri = new URL(url);
                 uri.searchParams.set('page', '1');
+                const filterParams: string[] = [];
+
+                if (filters) {
+                    Object.entries(filters).forEach(([key, value]) => {
+                        if (value) {
+                            if ('_eq' in value) {
+                                filterParams.push(`${key} _eq "${value._eq}"`);
+                            } else if ('_like' in value) {
+                                filterParams.push(`${key} _like "${value._like}"`);
+                            }
+                        }
+                    });
+                }
+
+                if (filterParams.length > 0) {
+                    uri.searchParams.set('search', filterParams.join(';'));
+                }
+
                 const appendNextRecords = async (page: number) => {
                     uri.searchParams.set('page', page.toString());
                     const response = await fetch(uri, {
                         headers: {
-                            ...await getHeaders(),
+                            ...(await getHeaders()),
                             SessionId: sessionId,
-                        }
+                        },
                     });
                     if (response.ok) {
                         const { data, total } = await response.json();
@@ -177,12 +228,12 @@ export const storeFunctions = (
                     } else {
                         handleErrorResponse(response, 'Failed to fetch records:');
                     }
-                }
+                };
 
                 fetchAllLock.add(url);
                 const response = await fetch(uri, {
                     headers: {
-                        ...await getHeaders(),
+                        ...(await getHeaders()),
                         SessionId: sessionId,
                     },
                 });
@@ -205,6 +256,6 @@ export const storeFunctions = (
                     handleErrorResponse(response, 'Failed to fetch records:');
                 }
             };
-        }
+        },
     };
 };
