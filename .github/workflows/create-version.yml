@@ -19,6 +19,8 @@ jobs:
           run: npm run dep
         - name: Build
           run: npm run build
+        - name: Run tests
+          run: npm run test
         - name: Update version
           run: npm run updateVersion
         - name: Publish
